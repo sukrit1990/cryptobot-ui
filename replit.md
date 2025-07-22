@@ -8,6 +8,15 @@ CryptoInvest Pro is a full-stack web application that provides users with a comp
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### CryptoBot API Integration (July 22, 2025)
+- Updated user registration flow to call external CryptoBot API
+- Account creation now validates credentials through https://cryptobot-api-f15f3256ac28.herokuapp.com/signup
+- API call includes gemini_api_key, gemini_api_secret, fund amount, and email
+- Removed local Gemini API validation in favor of external service validation
+- Maintains local user data storage and portfolio initialization after successful external API call
+
 ## System Architecture
 
 ### Frontend Architecture

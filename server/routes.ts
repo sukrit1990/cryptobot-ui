@@ -46,18 +46,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const userData = insertUserSchema.parse(req.body);
       
-      // Validate Gemini API credentials
-      const isValidCredentials = await validateGeminiCredentials(
-        userData.geminiApiKey,
-        userData.geminiApiSecret
-      );
-      
-      if (!isValidCredentials) {
-        return res.status(400).json({ 
-          message: "Invalid Gemini API credentials. Please check your API key and secret." 
-        });
-      }
-
       // Validate minimum investment amount
       const minInvestment = 1000;
       if (parseFloat(userData.initialFunds || "0") < minInvestment) {
@@ -65,6 +53,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: `Minimum investment amount is S$${minInvestment}` 
         });
       }
+
+      // Call external CryptoBot API for account creation
+      const cryptoBotSignup = await fetch('https://cryptobot-api-f15f3256ac28.herokuapp.com/signup', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          gemini_api_key: userData.geminiApiKey,
+          gemini_api_secret: userData.geminiApiSecret,
+          fund: parseFloat(userData.initialFunds || "0"),
+          email: userData.email
+        })
+      });
+
+      if (!cryptoBotSignup.ok) {
+        const errorData = await cryptoBotSignup.text();
+        console.error('CryptoBot API error:', errorData);
+        return res.status(400).json({ 
+          message: "Failed to create account with CryptoBot API. Please check your credentials." 
+        });
+      }
+
+      const cryptoBotResponse = await cryptoBotSignup.json();
+      console.log('CryptoBot signup successful:', cryptoBotResponse);
 
       // Update user with additional data
       await storage.updateUserSetup(userId, userData);
@@ -77,7 +91,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         portfolioData: { initialized: true, holdings: [] },
       });
 
-      res.json({ message: "User setup completed successfully" });
+      res.json({ 
+        message: "User setup completed successfully",
+        cryptoBotResponse: cryptoBotResponse
+      });
     } catch (error: any) {
       console.error("Error setting up user:", error);
       if (error instanceof z.ZodError) {
