@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
+import Setup from "@/pages/setup";
 import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
 import Checkout from "@/pages/checkout";
@@ -81,7 +82,7 @@ function Sidebar({ user }: { user: any }) {
 function AuthenticatedApp({ user }: { user: any }) {
   // Check if user needs to complete setup
   if (!user.geminiApiKey || !user.initialFunds) {
-    return <Landing />;
+    return <Setup />;
   }
 
   return (
