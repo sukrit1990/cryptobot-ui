@@ -72,6 +72,9 @@ export default function Setup() {
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Complete Your Setup</h2>
           <p className="mt-2 text-gray-600">Configure your crypto investment account</p>
+          <div className="mt-4 px-4 py-2 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-700">🔐 You're signed in! Now let's set up your investment account.</p>
+          </div>
         </div>
 
         <Card className="shadow-lg">
@@ -130,11 +133,14 @@ export default function Setup() {
                   )}
                 />
 
-                <div className="border rounded-lg p-4 bg-blue-50">
+                <div className="border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
                   <h3 className="font-medium text-gray-900 mb-3 flex items-center">
                     <Info className="mr-2 text-blue-600" size={16} />
                     Gemini API Credentials
                   </h3>
+                  <p className="text-xs text-gray-600 mb-4">
+                    Your API credentials are encrypted and securely stored. We'll validate them with CryptoBot API.
+                  </p>
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
@@ -143,7 +149,7 @@ export default function Setup() {
                         <FormItem>
                           <FormLabel>API Key</FormLabel>
                           <FormControl>
-                            <Input placeholder="Your Gemini API Key" {...field} />
+                            <Input placeholder="Enter your Gemini API Key" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -156,7 +162,7 @@ export default function Setup() {
                         <FormItem>
                           <FormLabel>API Secret</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="Your Gemini API Secret" {...field} />
+                            <Input type="password" placeholder="Enter your Gemini API Secret" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -182,10 +188,10 @@ export default function Setup() {
 
                 <Button 
                   type="submit" 
-                  className="w-full" 
+                  className="w-full h-12 text-lg bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90" 
                   disabled={isLoading || setupMutation.isPending}
                 >
-                  {isLoading || setupMutation.isPending ? "Setting up..." : "Complete Setup"}
+                  {isLoading || setupMutation.isPending ? "🔄 Setting up your account..." : "🚀 Complete Setup & Start Investing"}
                 </Button>
               </form>
             </Form>
