@@ -129,6 +129,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid email or password" });
       }
 
+      // Create a simple session (store user ID in session)
+      (req.session as any).userId = user.id;
+      (req.session as any).isAuthenticated = true;
+
       // For now, return success - in a real app you'd create a session
       res.json({ 
         message: "Signed in successfully",
@@ -136,12 +140,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: user.id,
           email: user.email,
           firstName: user.firstName,
-          lastName: user.lastName
+          lastName: user.lastName,
+          geminiApiKey: user.geminiApiKey,
+          geminiApiSecret: user.geminiApiSecret,
+          initialFunds: user.initialFunds
         }
       });
     } catch (error) {
       console.error("Sign in error:", error);
       res.status(500).json({ message: "Failed to sign in" });
+    }
+  });
+
+  // Local session check endpoint  
+  app.get('/api/auth/session', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Get user from database
+      const user = await storage.getUser(session.userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        geminiApiKey: user.geminiApiKey,
+        geminiApiSecret: user.geminiApiSecret,
+        initialFunds: user.initialFunds
+      });
+    } catch (error) {
+      console.error("Session check error:", error);
+      res.status(500).json({ message: "Failed to check session" });
+    }
+  });
+
+  // Sign out endpoint
+  app.post('/api/signout', async (req, res) => {
+    try {
+      (req.session as any).userId = null;
+      (req.session as any).isAuthenticated = false;
+      req.session.destroy(() => {
+        res.json({ message: "Signed out successfully" });
+      });
+    } catch (error) {
+      console.error("Sign out error:", error);
+      res.status(500).json({ message: "Failed to sign out" });
     }
   });
 
