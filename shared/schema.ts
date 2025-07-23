@@ -85,12 +85,16 @@ export const insertUserSchema = createInsertSchema(users).pick({
   initialFunds: true,
 }).extend({
   password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Please confirm your password"),
   email: z.string().email("Please enter a valid email address"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   geminiApiKey: z.string().min(1, "Gemini API key is required"),
   geminiApiSecret: z.string().min(1, "Gemini API secret is required"),
   initialFunds: z.string().min(1, "Initial funds amount is required"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 export const updateUserSettingsSchema = createInsertSchema(users).pick({

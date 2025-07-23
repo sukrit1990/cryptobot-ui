@@ -18,14 +18,13 @@ export default function Landing() {
   const queryClient = useQueryClient();
 
   const form = useForm({
-    resolver: zodResolver(insertUserSchema.extend({
-      initialFunds: insertUserSchema.shape.initialFunds.transform(val => val?.toString() || ''),
-    })),
+    resolver: zodResolver(insertUserSchema),
     defaultValues: {
       firstName: '',
       lastName: '',
       email: '',
       password: '',
+      confirmPassword: '',
       geminiApiKey: '',
       geminiApiSecret: '',
       initialFunds: '10000',
@@ -56,10 +55,7 @@ export default function Landing() {
   const onSubmit = async (data: any) => {
     setIsLoading(true);
     try {
-      setupMutation.mutate({
-        ...data,
-        initialFunds: parseFloat(data.initialFunds).toString(),
-      });
+      setupMutation.mutate(data);
     } finally {
       setIsLoading(false);
     }
@@ -139,19 +135,34 @@ export default function Landing() {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Enter your password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Enter your password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirm Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Confirm your password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
                       <h4 className="font-medium text-blue-900 flex items-center">

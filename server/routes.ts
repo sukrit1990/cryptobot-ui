@@ -66,9 +66,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create user in database (generate a unique ID)
       const userId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      const { confirmPassword, ...userDataWithoutConfirm } = userData;
       const newUser = await storage.createUser({
         id: userId,
-        ...userData,
+        ...userDataWithoutConfirm,
       });
 
       res.json({ 
