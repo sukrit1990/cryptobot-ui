@@ -2,12 +2,20 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, RefreshCw } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useQuery } from "@tanstack/react-query";
 
 interface PortfolioData {
   investedValue: number;
   currentValue: number;
   returns: number;
   returnsPercentage: number;
+}
+
+interface HistoryDataPoint {
+  date: string;
+  value: number;
+  timestamp: string;
 }
 
 export default function Dashboard() {
@@ -17,36 +25,49 @@ export default function Dashboard() {
     returns: 0,
     returnsPercentage: 0
   });
-  const [isLoading, setIsLoading] = useState(false);
 
-  // This will be replaced with actual API call later
-  const fetchPortfolioData = async () => {
-    setIsLoading(true);
-    try {
-      // Placeholder for future external API integration
-      // For now, show placeholder values indicating data will come from external API
-      setPortfolio({
-        investedValue: 0,
-        currentValue: 0,
-        returns: 0,
-        returnsPercentage: 0
-      });
-    } catch (error) {
-      console.error('Failed to fetch portfolio data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Fetch portfolio history from CryptoBot API
+  const { data: historyData, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
+    queryKey: ['/api/portfolio/history'],
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
 
+  // Process the history data and calculate current portfolio metrics
   useEffect(() => {
-    fetchPortfolioData();
-  }, []);
+    if (historyData && Array.isArray(historyData) && historyData.length > 0) {
+      const latestData = historyData[historyData.length - 1];
+      
+      // Calculate portfolio metrics from history data
+      const investedValue = latestData?.invested || 0;
+      const currentValue = latestData?.current || 0;
+      const returns = currentValue - investedValue;
+      const returnsPercentage = investedValue > 0 ? (returns / investedValue) * 100 : 0;
+
+      setPortfolio({
+        investedValue,
+        currentValue,
+        returns,
+        returnsPercentage
+      });
+    }
+  }, [historyData]);
 
   const handleSignOut = () => {
     // Clear session and redirect
     fetch('/api/signout', { method: 'POST' });
     window.location.reload();
   };
+
+  const handleRefresh = () => {
+    refetchHistory();
+  };
+
+  // Format data for the chart
+  const chartData = historyData?.map((point: any) => ({
+    date: new Date(point.timestamp || point.date).toLocaleDateString(),
+    value: point.value,
+    timestamp: point.timestamp || point.date
+  })) || [];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-SG', {
@@ -155,34 +176,24 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Data Status Card */}
+        {/* Portfolio Performance Chart */}
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <RefreshCw className="h-5 w-5" />
-              <span>Portfolio Data</span>
-            </CardTitle>
-            <CardDescription>
-              Portfolio values will be fetched from external backend API
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                <p>• Investment data will be retrieved from external API</p>
-                <p>• Real-time portfolio tracking coming soon</p>
-                <p>• Daily returns calculation pending API integration</p>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+                <span>Portfolio Performance</span>
               </div>
               <Button 
-                onClick={fetchPortfolioData}
-                disabled={isLoading}
+                onClick={handleRefresh}
+                disabled={historyLoading}
                 variant="outline"
-                className="ml-4"
+                size="sm"
               >
-                {isLoading ? (
+                {historyLoading ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Checking...
+                    Loading...
                   </>
                 ) : (
                   <>
@@ -191,7 +202,63 @@ export default function Dashboard() {
                   </>
                 )}
               </Button>
-            </div>
+            </CardTitle>
+            <CardDescription>
+              Track your investment value over time
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {historyLoading ? (
+              <div className="h-80 flex items-center justify-center">
+                <div className="text-center">
+                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
+                  <p className="text-gray-500">Loading portfolio data...</p>
+                </div>
+              </div>
+            ) : chartData.length > 0 ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 12 }}
+                      stroke="#6B7280"
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      stroke="#6B7280"
+                      tickFormatter={(value) => `$${value.toLocaleString()}`}
+                    />
+                    <Tooltip 
+                      formatter={(value: any) => [formatCurrency(value), 'Portfolio Value']}
+                      labelStyle={{ color: '#374151' }}
+                      contentStyle={{ 
+                        backgroundColor: '#F9FAFB', 
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#2563EB" 
+                      strokeWidth={3}
+                      dot={{ fill: '#2563EB', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: '#2563EB', strokeWidth: 2 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-80 flex items-center justify-center">
+                <div className="text-center">
+                  <BarChart3 className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-gray-500 text-lg font-medium">No portfolio data available</p>
+                  <p className="text-gray-400 text-sm mt-2">Your investment history will appear here once data is available</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
