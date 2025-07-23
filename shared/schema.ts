@@ -29,6 +29,7 @@ export const sessions = pgTable(
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   email: varchar("email").unique(),
+  password: varchar("password"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
@@ -76,11 +77,20 @@ export type InsertPaymentMethod = typeof paymentMethods.$inferInsert;
 
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
+  password: true,  
   firstName: true,
   lastName: true,
   geminiApiKey: true,
   geminiApiSecret: true,
   initialFunds: true,
+}).extend({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  geminiApiKey: z.string().min(1, "Gemini API key is required"),
+  geminiApiSecret: z.string().min(1, "Gemini API secret is required"),
+  initialFunds: z.string().min(1, "Initial funds amount is required"),
 });
 
 export const updateUserSettingsSchema = createInsertSchema(users).pick({

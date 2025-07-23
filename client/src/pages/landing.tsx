@@ -25,6 +25,7 @@ export default function Landing() {
       firstName: '',
       lastName: '',
       email: '',
+      password: '',
       geminiApiKey: '',
       geminiApiSecret: '',
       initialFunds: '10000',
@@ -33,7 +34,7 @@ export default function Landing() {
 
   const setupMutation = useMutation({
     mutationFn: async (data: any) => {
-      await apiRequest("POST", "/api/auth/setup", data);
+      await apiRequest("POST", "/api/register", data);
     },
     onSuccess: () => {
       toast({
@@ -132,6 +133,20 @@ export default function Landing() {
                           <FormLabel>Email Address</FormLabel>
                           <FormControl>
                             <Input type="email" placeholder="john@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Enter your password" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

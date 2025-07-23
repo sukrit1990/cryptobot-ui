@@ -19,6 +19,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
+  // Public registration endpoint (no auth required)
+  app.post('/api/register', async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+      
+      // Validate minimum investment amount
+      const minInvestment = 1000;
+      if (parseFloat(userData.initialFunds || "0") < minInvestment) {
+        return res.status(400).json({ 
+          message: `Minimum investment amount is S$${minInvestment}` 
+        });
+      }
+
+      // Call external CryptoBot API for account creation
+      const cryptoBotSignup = await fetch('https://cryptobot-api-f15f3256ac28.herokuapp.com/signup', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          gemini_api_key: userData.geminiApiKey,
+          gemini_api_secret: userData.geminiApiSecret,
+          fund: parseFloat(userData.initialFunds || "0"),
+          email: userData.email
+        })
+      });
+
+      if (!cryptoBotSignup.ok) {
+        const errorData = await cryptoBotSignup.text();
+        console.error('CryptoBot API error:', errorData);
+        return res.status(400).json({ 
+          message: "Failed to create account with CryptoBot API. Please check your credentials." 
+        });
+      }
+
+      const cryptoBotResponse = await cryptoBotSignup.json();
+      console.log('CryptoBot signup successful:', cryptoBotResponse);
+
+      // Create user in database (generate a unique ID)
+      const userId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      const newUser = await storage.createUser({
+        id: userId,
+        ...userData,
+      });
+
+      res.json({ 
+        message: "Account created successfully! You can now sign in.",
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+        }
+      });
+    } catch (error: any) {
+      console.error("Error creating user:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid data provided",
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to create user account" });
+    }
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
