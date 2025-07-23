@@ -11,6 +11,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ChartLine, Shield, Info } from "lucide-react";
+import { z } from "zod";
+
+const signInSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters long"),
+});
 
 export default function Landing() {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +34,14 @@ export default function Landing() {
       geminiApiKey: '',
       geminiApiSecret: '',
       initialFunds: '10000',
+    },
+  });
+
+  const signInForm = useForm({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: '',
+      password: '',
     },
   });
 
@@ -52,10 +66,40 @@ export default function Landing() {
     },
   });
 
+  const signInMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await apiRequest("POST", "/api/signin", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Signed in successfully!",
+        description: "Welcome back to your investment dashboard.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      window.location.reload();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sign in failed",
+        description: error.message || "Invalid email or password.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = async (data: any) => {
     setIsLoading(true);
     try {
       setupMutation.mutate(data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onSignIn = async (data: any) => {
+    setIsLoading(true);
+    try {
+      signInMutation.mutate(data);
     } finally {
       setIsLoading(false);
     }
@@ -249,7 +293,7 @@ export default function Landing() {
 
                 <div className="mt-6 text-center">
                   <button 
-                    onClick={() => document.querySelector('[data-state="inactive"]')?.click()}
+                    onClick={() => (document.querySelector('[data-state="inactive"]') as HTMLElement)?.click()}
                     className="text-primary hover:text-blue-600 font-medium"
                   >
                     Already have an account? Sign In
@@ -265,17 +309,50 @@ export default function Landing() {
                 <CardTitle className="text-2xl">Welcome Back</CardTitle>
                 <CardDescription>Sign in to your investment dashboard</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <Button 
-                  onClick={handleSignIn}
-                  className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-blue-700 hover:to-blue-700"
-                >
-                  Sign In to Dashboard
-                </Button>
+              <CardContent>
+                <Form {...signInForm}>
+                  <form onSubmit={signInForm.handleSubmit(onSignIn)} className="space-y-4">
+                    <FormField
+                      control={signInForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email Address</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="john@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <div className="text-center">
+                    <FormField
+                      control={signInForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Enter your password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-blue-700 hover:to-blue-700"
+                      disabled={isLoading || signInMutation.isPending}
+                    >
+                      {isLoading || signInMutation.isPending ? "Signing In..." : "Sign In"}
+                    </Button>
+                  </form>
+                </Form>
+
+                <div className="mt-6 text-center">
                   <button 
-                    onClick={() => document.querySelector('[data-state="inactive"]')?.click()}
+                    onClick={() => (document.querySelector('[data-state="inactive"]') as HTMLElement)?.click()}
                     className="text-primary hover:text-blue-600 font-medium"
                   >
                     Don't have an account? Sign Up

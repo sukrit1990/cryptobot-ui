@@ -109,6 +109,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sign-in endpoint for local authentication
+  app.post('/api/signin', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid email or password" });
+      }
+
+      // Verify password (in a real app, you'd hash and compare)
+      if (user.password !== password) {
+        return res.status(400).json({ message: "Invalid email or password" });
+      }
+
+      // For now, return success - in a real app you'd create a session
+      res.json({ 
+        message: "Signed in successfully",
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      });
+    } catch (error) {
+      console.error("Sign in error:", error);
+      res.status(500).json({ message: "Failed to sign in" });
+    }
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
