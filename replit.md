@@ -10,10 +10,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### CryptoBot API Integration (July 22, 2025)
+### CryptoBot API Integration (July 23, 2025)
 - Updated user registration flow to call external CryptoBot API
 - Account creation now validates credentials through https://cryptobot-api-f15f3256ac28.herokuapp.com/signup
 - API call includes gemini_api_key, gemini_api_secret, fund amount, and email
+- Added required x-api-key header for CryptoBot API authentication
+- Integrated API key: L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA
+- Added comprehensive logging for debugging API requests and responses
 - Removed local Gemini API validation in favor of external service validation
 - Maintains local user data storage and portfolio initialization after successful external API call
 
