@@ -143,7 +143,7 @@ export default function Settings() {
         title: "Settings updated",
         description: "Your investment settings have been saved.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
     },
     onError: (error: any) => {
       toast({
@@ -151,6 +151,31 @@ export default function Settings() {
         description: error.message || "Failed to update settings.",
         variant: "destructive",
       });
+    },
+  });
+
+  // Toggle automation mutation
+  const toggleMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/account/toggle");
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Automation toggled",
+        description: `Automated investing is now ${data.new_state === 'A' ? 'active' : 'inactive'}.`,
+      });
+      // Refresh account state to get updated toggle position
+      queryClient.invalidateQueries({ queryKey: ["/api/account/state"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Toggle failed",
+        description: error.message || "Failed to toggle automation state.",
+        variant: "destructive",
+      });
+      // Reset the toggle to previous state
+      queryClient.invalidateQueries({ queryKey: ["/api/account/state"] });
     },
   });
 
@@ -285,8 +310,12 @@ export default function Settings() {
                         <FormControl>
                           <Switch
                             checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled={accountLoading}
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              // Call API to toggle the state
+                              toggleMutation.mutate();
+                            }}
+                            disabled={accountLoading || toggleMutation.isPending}
                           />
                         </FormControl>
                       </FormItem>

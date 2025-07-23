@@ -10,6 +10,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Portfolio Visualization & Account Control Integration (July 23, 2025)
+- Integrated CryptoBot history API for real-time portfolio data visualization
+- Added responsive line chart using Recharts library showing portfolio performance over time
+- Implemented account state API integration for automated investing toggle control
+- Toggle now reflects real account status: "A" = Active, "I" = Inactive
+- Added POST API integration to toggle automation state with immediate UI feedback
+- Included visual status indicators with colored dots and loading states
+- Real-time data refresh every 5 minutes with manual refresh capability
+- Portfolio metrics calculated from actual API data with SGD formatting
+
 ### CryptoBot API Integration (July 23, 2025)
 - Updated user registration flow to call external CryptoBot API
 - Account creation now validates credentials through https://cryptobot-api-f15f3256ac28.herokuapp.com/signup
