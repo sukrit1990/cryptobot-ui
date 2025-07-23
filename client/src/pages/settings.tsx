@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -105,7 +105,13 @@ export default function Settings() {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
-    queryKey: ["/api/auth/user"],
+    queryKey: ["/api/auth/session"],
+  });
+
+  // Fetch account state from CryptoBot API
+  const { data: accountState, isLoading: accountLoading } = useQuery({
+    queryKey: ["/api/account/state"],
+    enabled: !!user, // Only fetch when user is available
   });
 
   const { data: paymentMethods = [], isLoading: paymentMethodsLoading } = useQuery<PaymentMethod[]>({
@@ -116,10 +122,17 @@ export default function Settings() {
     resolver: zodResolver(updateUserSettingsSchema),
     defaultValues: {
       initialFunds: user?.initialFunds?.toString() || '10000',
-      investmentActive: user?.investmentActive || true,
+      investmentActive: accountState?.state === 'A' || false,
       riskTolerance: user?.riskTolerance || 'moderate',
     },
   });
+
+  // Update form when account state changes
+  useEffect(() => {
+    if (accountState) {
+      form.setValue('investmentActive', accountState.state === 'A');
+    }
+  }, [accountState, form]);
 
   const settingsMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -245,6 +258,24 @@ export default function Settings() {
                   <div>
                     <h4 className="font-medium text-gray-900">Automated Investing</h4>
                     <p className="text-sm text-gray-600">AI-powered portfolio management</p>
+                    {accountState && (
+                      <div className="mt-2 flex items-center">
+                        <div className={`h-2 w-2 rounded-full mr-2 ${
+                          accountState.state === 'A' ? 'bg-green-500' : 'bg-gray-400'
+                        }`} />
+                        <span className={`text-xs ${
+                          accountState.state === 'A' ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          Status: {accountState.state === 'A' ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    )}
+                    {accountLoading && (
+                      <div className="mt-2 flex items-center">
+                        <div className="h-2 w-2 rounded-full mr-2 bg-gray-300 animate-pulse" />
+                        <span className="text-xs text-gray-400">Loading status...</span>
+                      </div>
+                    )}
                   </div>
                   <FormField
                     control={form.control}
@@ -255,6 +286,7 @@ export default function Settings() {
                           <Switch
                             checked={field.value}
                             onCheckedChange={field.onChange}
+                            disabled={accountLoading}
                           />
                         </FormControl>
                       </FormItem>
@@ -321,7 +353,7 @@ export default function Settings() {
 
                 <Button 
                   type="submit" 
-                  disabled={settingsMutation.isPending}
+                  disabled={settingsMutation.isPending || accountLoading}
                   className="w-full"
                 >
                   {settingsMutation.isPending ? "Updating..." : "Update Settings"}
