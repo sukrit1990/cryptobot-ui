@@ -24,6 +24,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userData = insertUserSchema.parse(req.body);
       
+      console.log('=== Registration Request Received ===');
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('Parsed userData:', JSON.stringify(userData, null, 2));
+      
+      // Show what will be sent to CryptoBot API
+      console.log('=== CryptoBot API Payload ===');
+      console.log('gemini_api_key:', userData.geminiApiKey || 'MISSING');
+      console.log('gemini_api_secret:', userData.geminiApiSecret || 'MISSING');  
+      console.log('fund:', parseFloat(userData.initialFunds || "0"));
+      console.log('email:', userData.email || 'MISSING');
+      console.log('API Key length:', (userData.geminiApiKey || '').length);
+      console.log('API Secret length:', (userData.geminiApiSecret || '').length);
+      console.log('=============================');
+      console.log('=====================================');
+      
       // Check if user already exists
       const existingUser = await storage.getUserByEmail(userData.email);
       if (existingUser) {
