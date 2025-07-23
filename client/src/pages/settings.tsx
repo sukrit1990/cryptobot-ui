@@ -21,7 +21,8 @@ import {
   Plus,
   Trash2,
   Lock,
-  User as UserIcon
+  User as UserIcon,
+  ExternalLink
 } from "lucide-react";
 import { Elements, useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
@@ -392,6 +393,27 @@ export default function Settings() {
                 {setupIntentMutation.isPending ? "Setting up..." : "Add Payment Method"}
               </Button>
             )}
+            
+            {/* Billing Portal Link */}
+            <div className="border-t pt-4 mt-6">
+              <a
+                href="https://billing.stripe.com/p/login/test_14A5kC2Kt93E0vv2dx4F200"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center">
+                  <div className="h-10 w-10 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center mr-3">
+                    <CreditCard className="text-white" size={20} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">Manage Billing</p>
+                    <p className="text-sm text-gray-500">View invoices, update billing info, and manage subscriptions</p>
+                  </div>
+                </div>
+                <ExternalLink className="text-gray-400" size={18} />
+              </a>
+            </div>
             
             {/* Security Note */}
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
