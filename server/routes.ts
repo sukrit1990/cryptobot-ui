@@ -803,7 +803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Save payment method after setup
+  // Save payment method after setup and create subscription
   app.post('/api/payment-methods', async (req, res) => {
     try {
       const session = req.session as any;
@@ -821,18 +821,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Stripe customer not found" });
       }
 
-      const Stripe = require('stripe');
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
 
       // Attach payment method to customer
       await stripe.paymentMethods.attach(paymentMethodId, {
         customer: user.stripeCustomerId,
       });
 
-      res.json({ success: true });
-    } catch (error) {
+      // Check if user already has an active subscription
+      const existingSubscriptions = await stripe.subscriptions.list({
+        customer: user.stripeCustomerId,
+        status: 'active',
+      });
+
+      let subscriptionResult = null;
+
+      if (existingSubscriptions.data.length === 0) {
+        // Create new subscription with the payment method
+        const subscription = await stripe.subscriptions.create({
+          customer: user.stripeCustomerId,
+          items: [{
+            price: 'price_1RoRk1AU0aPHWB2SEy3NtXI8', // Singapore-specific price
+          }],
+          default_payment_method: paymentMethodId,
+          payment_settings: {
+            save_default_payment_method: 'on_subscription',
+            payment_method_types: ['card'],
+          },
+        });
+
+        // Update user with subscription ID
+        await storage.updateUser(session.userId, { 
+          stripeSubscriptionId: subscription.id 
+        });
+
+        subscriptionResult = {
+          subscriptionId: subscription.id,
+          status: subscription.status,
+          message: "Subscription created successfully"
+        };
+      } else {
+        subscriptionResult = {
+          subscriptionId: existingSubscriptions.data[0].id,
+          status: existingSubscriptions.data[0].status,
+          message: "Existing subscription updated with new payment method"
+        };
+
+        // Update default payment method for existing subscription
+        await stripe.subscriptions.update(existingSubscriptions.data[0].id, {
+          default_payment_method: paymentMethodId,
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Payment method added successfully",
+        subscription: subscriptionResult
+      });
+    } catch (error: any) {
       console.error("Save payment method error:", error);
-      res.status(500).json({ message: "Failed to save payment method" });
+      res.status(500).json({ 
+        message: "Failed to save payment method: " + error.message 
+      });
     }
   });
 

@@ -58,18 +58,27 @@ function PaymentMethodForm({ onClose }: { onClose: () => void }) {
           variant: "destructive",
         });
       } else if (setupIntent && setupIntent.payment_method) {
-        // Save payment method to backend
-        await apiRequest("POST", "/api/payment-methods", {
+        // Save payment method to backend and create subscription
+        const response = await apiRequest("POST", "/api/payment-methods", {
           paymentMethodId: setupIntent.payment_method,
         });
 
-        toast({
-          title: "Payment method added",
-          description: "Your payment method has been added successfully.",
-        });
-
-        queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
-        onClose();
+        if (response.ok) {
+          const result = await response.json();
+          
+          toast({
+            title: "Payment method added",
+            description: result.subscription ? 
+              `Payment method added and ${result.subscription.message.toLowerCase()}` :
+              "Your payment method has been added successfully.",
+          });
+          
+          queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/subscription-status"] });
+          onClose();
+        } else {
+          throw new Error("Failed to save payment method");
+        }
       }
     } catch (error: any) {
       toast({
@@ -391,13 +400,16 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Payment Methods */}
+        {/* Payment Methods & Subscription */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
               <CreditCard className="mr-2" size={20} />
-              Payment Methods
+              Payment Methods & Subscription
             </CardTitle>
+            <CardDescription>
+              Adding a payment method automatically starts your monthly subscription
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {/* Current Payment Methods */}
@@ -450,7 +462,7 @@ export default function Settings() {
                 className="w-full p-4 border-2 border-dashed border-gray-300 hover:border-primary hover:bg-blue-50"
               >
                 <Plus className="mr-2" size={20} />
-                {setupIntentMutation.isPending ? "Setting up..." : "Add Payment Method"}
+                {setupIntentMutation.isPending ? "Setting up..." : "Add Payment Method & Start Subscription"}
               </Button>
             )}
 
