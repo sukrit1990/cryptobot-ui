@@ -646,14 +646,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe setup intent for adding payment methods
-  app.post('/api/payment-methods/setup-intent', isAuthenticated, async (req: any, res) => {
+  app.post('/api/payment-methods/setup-intent', async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(session.userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -677,7 +677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerId = customer.id;
         
         // Update user with customer ID
-        await storage.updateUser(userId, { stripeCustomerId: customerId });
+        await storage.updateUser(session.userId, { stripeCustomerId: customerId });
       }
 
       // Create setup intent
@@ -698,14 +698,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get payment methods
-  app.get('/api/payment-methods', isAuthenticated, async (req: any, res) => {
+  app.get('/api/payment-methods', async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(session.userId);
       if (!user || !user.stripeCustomerId) {
         return res.json([]);
       }
@@ -739,11 +739,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Save payment method after setup
-  app.post('/api/payment-methods', isAuthenticated, async (req: any, res) => {
+  app.post('/api/payment-methods', async (req, res) => {
     try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User ID not found" });
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
       }
 
       const { paymentMethodId } = req.body;
@@ -751,7 +751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Payment method ID required" });
       }
 
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(session.userId);
       if (!user || !user.stripeCustomerId) {
         return res.status(400).json({ message: "Stripe customer not found" });
       }
