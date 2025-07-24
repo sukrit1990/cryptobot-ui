@@ -6,6 +6,8 @@ import { insertUserSchema, updateUserSettingsSchema } from "@shared/schema";
 import { validateGeminiCredentials, getPortfolioData } from "./gemini";
 import Stripe from "stripe";
 import { z } from "zod";
+import session from "express-session";
+import memorystore from "memorystore";
 
 // Initialize Stripe only if secret key is available
 let stripe: Stripe | null = null;
@@ -16,8 +18,22 @@ if (process.env.STRIPE_SECRET_KEY) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
+  // Session middleware for local authentication
+  const MemoryStore = memorystore(session);
+  
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'default-session-secret-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    store: new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    }),
+    cookie: {
+      secure: false, // Set to true in production with HTTPS
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
 
   // Public registration endpoint (no auth required)
   app.post('/api/register', async (req, res) => {
@@ -156,6 +172,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/session', async (req, res) => {
     try {
       const session = req.session as any;
+      console.log('[AUTH SESSION] Session data:', JSON.stringify(session, null, 2));
+      
       if (!session?.userId || !session?.isAuthenticated) {
         return res.status(401).json({ message: "Not authenticated" });
       }
