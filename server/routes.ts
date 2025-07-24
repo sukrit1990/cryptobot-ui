@@ -382,14 +382,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe payment method routes
-  app.post('/api/payment-methods/setup-intent', async (req: any, res) => {
+  app.post('/api/payment-methods/setup-intent', async (req, res) => {
     try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
       if (!stripe) {
         return res.status(500).json({ message: "Stripe is not configured. Please contact support." });
       }
 
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(session.userId);
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -405,7 +409,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         customerId = customer.id;
-        await storage.updateStripeCustomerId(userId, customerId);
+        await storage.updateUser(session.userId, { stripeCustomerId: customerId });
       }
 
       const setupIntent = await stripe.setupIntents.create({
@@ -420,25 +424,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/payment-methods', async (req: any, res) => {
+  app.get('/api/payment-methods', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const paymentMethods = await storage.getPaymentMethodsByUserId(userId);
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user || !user.stripeCustomerId) {
+        return res.json([]);
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: user.stripeCustomerId,
+        type: 'card',
+      });
+
+      const formattedMethods = paymentMethods.data.map((pm: any) => ({
+        id: pm.id,
+        brand: pm.card.brand,
+        last4: pm.card.last4,
+        expiryMonth: pm.card.exp_month,
+        expiryYear: pm.card.exp_year,
+        isDefault: false,
+      }));
       
-      res.json(paymentMethods);
+      res.json(formattedMethods);
     } catch (error) {
       console.error("Error fetching payment methods:", error);
       res.status(500).json({ message: "Failed to fetch payment methods" });
     }
   });
 
-  app.post('/api/payment-methods', async (req: any, res) => {
+  app.post('/api/payment-methods', async (req, res) => {
     try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
       if (!stripe) {
         return res.status(500).json({ message: "Stripe is not configured. Please contact support." });
       }
 
-      const userId = req.user.claims.sub;
       const { paymentMethodId } = req.body;
 
       if (!paymentMethodId) {
@@ -448,17 +481,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get payment method details from Stripe
       const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
       
-      if (paymentMethod.type === 'card' && paymentMethod.card) {
-        await storage.createPaymentMethod(userId, {
-          stripePaymentMethodId: paymentMethodId,
-          type: 'card',
-          last4: paymentMethod.card.last4,
-          brand: paymentMethod.card.brand,
-          expiryMonth: paymentMethod.card.exp_month.toString(),
-          expiryYear: paymentMethod.card.exp_year.toString(),
-          isDefault: true, // Make first payment method default
-        });
+      const user = await storage.getUser(session.userId);
+      if (!user || !user.stripeCustomerId) {
+        return res.status(400).json({ message: "Stripe customer not found" });
       }
+
+      // Attach payment method to customer
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: user.stripeCustomerId,
+      });
 
       res.json({ message: "Payment method added successfully" });
     } catch (error: any) {
@@ -467,26 +498,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/payment-methods/:id', async (req: any, res) => {
+  app.delete('/api/payment-methods/:id', async (req, res) => {
     try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
       if (!stripe) {
         return res.status(500).json({ message: "Stripe is not configured. Please contact support." });
       }
 
-      const userId = req.user.claims.sub;
       const { id } = req.params;
 
-      const paymentMethod = await storage.getPaymentMethodById(parseInt(id));
-      
-      if (!paymentMethod || paymentMethod.userId !== userId) {
-        return res.status(404).json({ message: "Payment method not found" });
-      }
-
-      // Detach from Stripe
-      await stripe.paymentMethods.detach(paymentMethod.stripePaymentMethodId);
-      
-      // Delete from database
-      await storage.deletePaymentMethod(parseInt(id));
+      // Detach from Stripe customer
+      await stripe.paymentMethods.detach(id);
 
       res.json({ message: "Payment method removed successfully" });
     } catch (error: any) {
