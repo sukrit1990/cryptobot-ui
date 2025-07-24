@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, RefreshCw } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, RefreshCw, PiggyBank } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useQuery } from "@tanstack/react-query";
 
 interface PortfolioData {
@@ -29,6 +30,12 @@ export default function Dashboard() {
   // Fetch portfolio history from CryptoBot API
   const { data: historyData, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
     queryKey: ['/api/portfolio/history'],
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+  });
+
+  // Fetch profit data from CryptoBot API
+  const { data: profitData, isLoading: profitLoading, refetch: refetchProfit } = useQuery({
+    queryKey: ['/api/profit'],
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
   });
 
@@ -60,6 +67,7 @@ export default function Dashboard() {
 
   const handleRefresh = () => {
     refetchHistory();
+    refetchProfit();
   };
 
   // Format data for the chart
@@ -110,10 +118,24 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Portfolio Overview</h2>
-          <p className="text-gray-600">Track your cryptocurrency investment performance</p>
-        </div>
+        {/* Tabs */}
+        <Tabs defaultValue="portfolio" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="portfolio" className="flex items-center">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Portfolio Performance
+            </TabsTrigger>
+            <TabsTrigger value="profit" className="flex items-center">
+              <PiggyBank className="w-4 h-4 mr-2" />
+              Realized Profit
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="portfolio">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Portfolio Overview</h2>
+              <p className="text-gray-600">Track your cryptocurrency investment performance</p>
+            </div>
 
         {/* Portfolio Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -261,6 +283,147 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="profit">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Realized Profit</h2>
+              <p className="text-gray-600">Track your cryptocurrency trading profits over time</p>
+            </div>
+
+            {/* Profit Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {/* Total Profit */}
+              <Card className="shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    Total Realized Profit
+                  </CardTitle>
+                  <PiggyBank className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {profitData && profitData.profit?.length > 0 
+                      ? formatCurrency(profitData.profit.reduce((sum: number, item: any) => sum + (parseFloat(item.PROFIT) || 0), 0))
+                      : "No profit data"
+                    }
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Cumulative trading profits
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Latest Profit */}
+              <Card className="shadow-lg">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    Latest Day Profit
+                  </CardTitle>
+                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {profitData && profitData.profit?.length > 0
+                      ? formatCurrency(parseFloat(profitData.profit[profitData.profit.length - 1]?.PROFIT || 0))
+                      : "No data"
+                    }
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {profitData && profitData.profit?.length > 0
+                      ? `On ${profitData.profit[profitData.profit.length - 1]?.DATE}`
+                      : "Latest profit information"
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Profit Chart */}
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center">
+                    <BarChart3 className="mr-2 h-5 w-5" />
+                    Profit History
+                  </span>
+                  <Button 
+                    onClick={handleRefresh}
+                    variant="outline"
+                    size="sm"
+                    disabled={profitLoading}
+                    className="ml-auto"
+                  >
+                    {profitLoading ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Refresh
+                      </>
+                    )}
+                  </Button>
+                </CardTitle>
+                <CardDescription>
+                  Track your realized profits over time
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {profitLoading ? (
+                  <div className="h-80 flex items-center justify-center">
+                    <div className="text-center">
+                      <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-green-600" />
+                      <p className="text-gray-500">Loading profit data...</p>
+                    </div>
+                  </div>
+                ) : profitData && profitData.profit?.length > 0 ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={profitData.profit}>
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis 
+                          dataKey="DATE" 
+                          tick={{ fontSize: 12 }}
+                          stroke="#6B7280"
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 12 }}
+                          stroke="#6B7280"
+                          tickFormatter={(value) => `$${value.toLocaleString()}`}
+                        />
+                        <Tooltip 
+                          formatter={(value: any) => [formatCurrency(value), 'Daily Profit']}
+                          labelStyle={{ color: '#374151' }}
+                          contentStyle={{ 
+                            backgroundColor: '#F9FAFB', 
+                            border: '1px solid #E5E7EB',
+                            borderRadius: '8px'
+                          }}
+                        />
+                        <Bar 
+                          dataKey="PROFIT" 
+                          fill="#10B981"
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-80 flex items-center justify-center">
+                    <div className="text-center">
+                      <PiggyBank className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-gray-500 text-lg font-medium">No profit data available</p>
+                      <p className="text-gray-400 text-sm mt-2">Your trading profits will appear here once data is available</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
