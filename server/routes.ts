@@ -649,6 +649,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/payment-methods/setup-intent', async (req, res) => {
     try {
       const session = req.session as any;
+      console.log('=== Payment Setup Intent Debug ===');
+      console.log('Session object:', JSON.stringify(session, null, 2));
+      console.log('Session userId:', session?.userId);
+      console.log('Session isAuthenticated:', session?.isAuthenticated);
+      console.log('================================');
+      
       if (!session?.userId || !session?.isAuthenticated) {
         return res.status(401).json({ message: "Not authenticated" });
       }
@@ -701,6 +707,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/payment-methods', async (req, res) => {
     try {
       const session = req.session as any;
+      console.log('=== Payment Methods List Debug ===');
+      console.log('Session object:', JSON.stringify(session, null, 2));
+      console.log('Session userId:', session?.userId);
+      console.log('Session isAuthenticated:', session?.isAuthenticated);
+      console.log('=================================');
+      
       if (!session?.userId || !session?.isAuthenticated) {
         return res.status(401).json({ message: "Not authenticated" });
       }
