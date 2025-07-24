@@ -281,10 +281,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('CryptoBot signup successful:', cryptoBotResponse);
 
       // Update user with additional data
-      await storage.updateUserSetup(userId, userData);
+      await storage.updateUserSetup(session.userId, userData);
       
       // Initialize portfolio
-      await storage.createPortfolio(userId, {
+      await storage.createPortfolio(session.userId, {
         totalValue: userData.initialFunds,
         totalReturns: "0",
         dailyPnL: "0",
@@ -342,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const portfolioData = await getPortfolioData(user.geminiApiKey, user.geminiApiSecret);
       
-      await storage.updatePortfolio(userId, {
+      await storage.updatePortfolio(session.userId, {
         totalValue: portfolioData.totalValue.toString(),
         totalReturns: portfolioData.totalReturns.toString(),
         dailyPnL: portfolioData.dailyPnL.toString(),
@@ -415,6 +415,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const setupIntent = await stripe.setupIntents.create({
         customer: customerId,
         usage: 'off_session',
+        payment_method_types: [
+          'card',
+          'paynow',  // Singapore PayNow
+          'grabpay', // GrabPay (popular in Singapore)
+          'fpx',     // Malaysian FPX (also available in Singapore)
+        ],
+        metadata: {
+          country: 'SG'
+        }
       });
 
       res.json({ clientSecret: setupIntent.client_secret });
@@ -440,19 +449,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Stripe is not configured" });
       }
 
-      const paymentMethods = await stripe.paymentMethods.list({
-        customer: user.stripeCustomerId,
-        type: 'card',
+      // Fetch all payment method types
+      const allPaymentMethods = await Promise.all([
+        stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: 'card' }),
+        stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: 'paynow' }),
+        stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: 'grabpay' }),
+        stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: 'fpx' }),
+      ]);
+
+      const formattedMethods: any[] = [];
+      
+      // Format card payment methods
+      allPaymentMethods[0].data.forEach((pm: any) => {
+        formattedMethods.push({
+          id: pm.id,
+          type: 'card',
+          brand: pm.card.brand,
+          last4: pm.card.last4,
+          expiryMonth: pm.card.exp_month,
+          expiryYear: pm.card.exp_year,
+          displayName: `${pm.card.brand.toUpperCase()} ****${pm.card.last4}`,
+          isDefault: false,
+        });
       });
 
-      const formattedMethods = paymentMethods.data.map((pm: any) => ({
-        id: pm.id,
-        brand: pm.card.brand,
-        last4: pm.card.last4,
-        expiryMonth: pm.card.exp_month,
-        expiryYear: pm.card.exp_year,
-        isDefault: false,
-      }));
+      // Format PayNow payment methods
+      allPaymentMethods[1].data.forEach((pm: any) => {
+        formattedMethods.push({
+          id: pm.id,
+          type: 'paynow',
+          displayName: 'PayNow (Singapore)',
+          isDefault: false,
+        });
+      });
+
+      // Format GrabPay payment methods
+      allPaymentMethods[2].data.forEach((pm: any) => {
+        formattedMethods.push({
+          id: pm.id,
+          type: 'grabpay',
+          displayName: 'GrabPay',
+          isDefault: false,
+        });
+      });
+
+      // Format FPX payment methods
+      allPaymentMethods[3].data.forEach((pm: any) => {
+        formattedMethods.push({
+          id: pm.id,
+          type: 'fpx',
+          displayName: 'FPX Online Banking',
+          isDefault: false,
+        });
+      });
       
       res.json(formattedMethods);
     } catch (error) {
