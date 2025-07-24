@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertUserSchema, updateUserSettingsSchema } from "@shared/schema";
 import { validateGeminiCredentials, getPortfolioData } from "./gemini";
 import Stripe from "stripe";
@@ -172,8 +171,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/session', async (req, res) => {
     try {
       const session = req.session as any;
-      console.log('[AUTH SESSION] Session data:', JSON.stringify(session, null, 2));
-      
       if (!session?.userId || !session?.isAuthenticated) {
         return res.status(401).json({ message: "Not authenticated" });
       }
@@ -214,10 +211,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(session.userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -235,9 +236,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User registration/setup
-  app.post('/api/auth/setup', isAuthenticated, async (req: any, res) => {
+  app.post('/api/auth/setup', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
       const userData = insertUserSchema.parse(req.body);
       
       // Validate minimum investment amount
@@ -303,10 +308,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get portfolio data
-  app.get('/api/portfolio', isAuthenticated, async (req: any, res) => {
+  app.get('/api/portfolio', async (req, res) => {
+    const session = req.session as any;
+    if (!session?.userId || !session?.isAuthenticated) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
     try {
-      const userId = req.user.claims.sub;
-      const portfolio = await storage.getPortfolioByUserId(userId);
+      const portfolio = await storage.getPortfolioByUserId(session.userId);
       
       if (!portfolio) {
         return res.status(404).json({ message: "Portfolio not found" });
@@ -320,10 +328,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update portfolio (daily refresh)
-  app.post('/api/portfolio/refresh', isAuthenticated, async (req: any, res) => {
+  app.post('/api/portfolio/refresh', async (req, res) => {
+    const session = req.session as any;
+    if (!session?.userId || !session?.isAuthenticated) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(session.userId);
       
       if (!user || !user.geminiApiKey || !user.geminiApiSecret) {
         return res.status(400).json({ message: "Gemini API credentials not configured" });
@@ -347,12 +358,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update user settings
-  app.post('/api/settings', isAuthenticated, async (req: any, res) => {
+  app.post('/api/settings', async (req, res) => {
+    const session = req.session as any;
+    if (!session?.userId || !session?.isAuthenticated) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
     try {
-      const userId = req.user.claims.sub;
       const settings = updateUserSettingsSchema.parse(req.body);
       
-      await storage.updateUserSettings(userId, settings);
+      await storage.updateUserSettings(session.userId, settings);
       
       res.json({ message: "Settings updated successfully" });
     } catch (error: any) {
@@ -368,7 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe payment method routes
-  app.post('/api/payment-methods/setup-intent', isAuthenticated, async (req: any, res) => {
+  app.post('/api/payment-methods/setup-intent', async (req: any, res) => {
     try {
       if (!stripe) {
         return res.status(500).json({ message: "Stripe is not configured. Please contact support." });
@@ -406,7 +420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/payment-methods', isAuthenticated, async (req: any, res) => {
+  app.get('/api/payment-methods', async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const paymentMethods = await storage.getPaymentMethodsByUserId(userId);
@@ -418,7 +432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/payment-methods', isAuthenticated, async (req: any, res) => {
+  app.post('/api/payment-methods', async (req: any, res) => {
     try {
       if (!stripe) {
         return res.status(500).json({ message: "Stripe is not configured. Please contact support." });
@@ -453,7 +467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/payment-methods/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/payment-methods/:id', async (req: any, res) => {
     try {
       if (!stripe) {
         return res.status(500).json({ message: "Stripe is not configured. Please contact support." });
@@ -667,12 +681,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/payment-methods/setup-intent', async (req, res) => {
     try {
       const session = req.session as any;
-      console.log('=== Payment Setup Intent Debug ===');
-      console.log('Session object:', JSON.stringify(session, null, 2));
-      console.log('Session userId:', session?.userId);
-      console.log('Session isAuthenticated:', session?.isAuthenticated);
-      console.log('================================');
-      
       if (!session?.userId || !session?.isAuthenticated) {
         return res.status(401).json({ message: "Not authenticated" });
       }
@@ -725,12 +733,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/payment-methods', async (req, res) => {
     try {
       const session = req.session as any;
-      console.log('=== Payment Methods List Debug ===');
-      console.log('Session object:', JSON.stringify(session, null, 2));
-      console.log('Session userId:', session?.userId);
-      console.log('Session isAuthenticated:', session?.isAuthenticated);
-      console.log('=================================');
-      
       if (!session?.userId || !session?.isAuthenticated) {
         return res.status(401).json({ message: "Not authenticated" });
       }
