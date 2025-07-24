@@ -10,15 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### Portfolio Visualization & Account Control Integration (July 23, 2025)
-- Integrated CryptoBot history API for real-time portfolio data visualization
-- Added responsive line chart using Recharts library showing portfolio performance over time
-- Implemented account state API integration for automated investing toggle control
-- Toggle now reflects real account status: "A" = Active, "I" = Inactive
-- Added POST API integration to toggle automation state with immediate UI feedback
-- Included visual status indicators with colored dots and loading states
-- Real-time data refresh every 5 minutes with manual refresh capability
-- Portfolio metrics calculated from actual API data with SGD formatting
+### Comprehensive Dashboard & Payment Integration (July 24, 2025)
+- Added tabbed dashboard interface with Portfolio Performance and Realized Profit tabs
+- Integrated CryptoBot profit API (/profit) for realized trading profit visualization
+- Created comprehensive profit display with summary cards and interactive bar charts
+- Shows total realized profit and latest day profit with SGD formatting
+- Portfolio tab displays investment value over time with responsive line charts
+- Both tabs auto-refresh every 5 minutes with manual refresh capability
+- Implemented Stripe payment method integration in settings page
+- Users can now add payment methods via Stripe Elements for subscription billing
+- Added Stripe setup intent API and payment method storage functionality
+- Integrated automated investing toggle with real CryptoBot API state control
+- Toggle reflects actual account status: "A" = Active, "I" = Inactive with visual indicators
 
 ### CryptoBot API Integration (July 23, 2025)
 - Updated user registration flow to call external CryptoBot API

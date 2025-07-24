@@ -645,6 +645,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe setup intent for adding payment methods
+  app.post('/api/payment-methods/setup-intent', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Import Stripe
+      const Stripe = require('stripe');
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(500).json({ message: "Stripe not configured" });
+      }
+      
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+      // Create or get Stripe customer
+      let customerId = user.stripeCustomerId;
+      
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        });
+        customerId = customer.id;
+        
+        // Update user with customer ID
+        await storage.updateUser(session.userId, { stripeCustomerId: customerId });
+      }
+
+      // Create setup intent
+      const setupIntent = await stripe.setupIntents.create({
+        customer: customerId,
+        usage: 'off_session',
+        payment_method_types: ['card'],
+      });
+
+      res.json({ 
+        clientSecret: setupIntent.client_secret,
+        customerId: customerId
+      });
+    } catch (error) {
+      console.error("Setup intent error:", error);
+      res.status(500).json({ message: "Failed to create setup intent" });
+    }
+  });
+
+  // Get payment methods
+  app.get('/api/payment-methods', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user || !user.stripeCustomerId) {
+        return res.json([]);
+      }
+
+      const Stripe = require('stripe');
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(500).json({ message: "Stripe not configured" });
+      }
+      
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: user.stripeCustomerId,
+        type: 'card',
+      });
+
+      const formattedMethods = paymentMethods.data.map((pm: any) => ({
+        id: pm.id,
+        brand: pm.card.brand,
+        last4: pm.card.last4,
+        expiryMonth: pm.card.exp_month,
+        expiryYear: pm.card.exp_year,
+        isDefault: false, // You can implement default logic later
+      }));
+
+      res.json(formattedMethods);
+    } catch (error) {
+      console.error("Payment methods error:", error);
+      res.status(500).json({ message: "Failed to fetch payment methods" });
+    }
+  });
+
+  // Save payment method after setup
+  app.post('/api/payment-methods', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { paymentMethodId } = req.body;
+      if (!paymentMethodId) {
+        return res.status(400).json({ message: "Payment method ID required" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user || !user.stripeCustomerId) {
+        return res.status(400).json({ message: "Stripe customer not found" });
+      }
+
+      const Stripe = require('stripe');
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+      // Attach payment method to customer
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: user.stripeCustomerId,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Save payment method error:", error);
+      res.status(500).json({ message: "Failed to save payment method" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
