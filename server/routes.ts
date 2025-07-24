@@ -415,12 +415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const setupIntent = await stripe.setupIntents.create({
         customer: customerId,
         usage: 'off_session',
-        payment_method_types: [
-          'card',
-          'paynow',  // Singapore PayNow
-          'grabpay', // GrabPay (popular in Singapore)
-          'fpx',     // Malaysian FPX (also available in Singapore)
-        ],
+        payment_method_types: ['card'],
         metadata: {
           country: 'SG'
         }
@@ -449,59 +444,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Stripe is not configured" });
       }
 
-      // Fetch all payment method types
-      const allPaymentMethods = await Promise.all([
-        stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: 'card' }),
-        stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: 'paynow' }),
-        stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: 'grabpay' }),
-        stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: 'fpx' }),
-      ]);
-
-      const formattedMethods: any[] = [];
-      
-      // Format card payment methods
-      allPaymentMethods[0].data.forEach((pm: any) => {
-        formattedMethods.push({
-          id: pm.id,
-          type: 'card',
-          brand: pm.card.brand,
-          last4: pm.card.last4,
-          expiryMonth: pm.card.exp_month,
-          expiryYear: pm.card.exp_year,
-          displayName: `${pm.card.brand.toUpperCase()} ****${pm.card.last4}`,
-          isDefault: false,
-        });
+      // Fetch card payment methods only
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: user.stripeCustomerId,
+        type: 'card',
       });
 
-      // Format PayNow payment methods
-      allPaymentMethods[1].data.forEach((pm: any) => {
-        formattedMethods.push({
-          id: pm.id,
-          type: 'paynow',
-          displayName: 'PayNow (Singapore)',
-          isDefault: false,
-        });
-      });
-
-      // Format GrabPay payment methods
-      allPaymentMethods[2].data.forEach((pm: any) => {
-        formattedMethods.push({
-          id: pm.id,
-          type: 'grabpay',
-          displayName: 'GrabPay',
-          isDefault: false,
-        });
-      });
-
-      // Format FPX payment methods
-      allPaymentMethods[3].data.forEach((pm: any) => {
-        formattedMethods.push({
-          id: pm.id,
-          type: 'fpx',
-          displayName: 'FPX Online Banking',
-          isDefault: false,
-        });
-      });
+      const formattedMethods = paymentMethods.data.map((pm: any) => ({
+        id: pm.id,
+        type: 'card',
+        brand: pm.card.brand,
+        last4: pm.card.last4,
+        expiryMonth: pm.card.exp_month,
+        expiryYear: pm.card.exp_year,
+        displayName: `${pm.card.brand.toUpperCase()} ****${pm.card.last4}`,
+        isDefault: false,
+      }));
       
       res.json(formattedMethods);
     } catch (error) {
@@ -875,6 +833,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Save payment method error:", error);
       res.status(500).json({ message: "Failed to save payment method" });
+    }
+  });
+
+  // Subscription management endpoints
+  app.post('/api/create-subscription', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      let customerId = user.stripeCustomerId;
+      
+      // Create Stripe customer if doesn't exist
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
+        });
+        
+        customerId = customer.id;
+        await storage.updateUser(session.userId, { stripeCustomerId: customerId });
+      }
+
+      // Check if user already has an active subscription
+      if (user.stripeSubscriptionId) {
+        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+        if (subscription.status === 'active') {
+          return res.json({
+            subscriptionId: subscription.id,
+            status: subscription.status,
+            message: "Already subscribed"
+          });
+        }
+      }
+
+      // Create new subscription
+      const subscription = await stripe.subscriptions.create({
+        customer: customerId,
+        items: [{
+          price: 'price_1RoRk1AU0aPHWB2SEy3NtXI8', // Singapore-specific price
+        }],
+        payment_behavior: 'default_incomplete',
+        payment_settings: {
+          save_default_payment_method: 'on_subscription',
+        },
+        expand: ['latest_invoice.payment_intent'],
+      });
+
+      // Update user with subscription ID
+      await storage.updateUser(session.userId, { 
+        stripeSubscriptionId: subscription.id 
+      });
+
+      res.json({
+        subscriptionId: subscription.id,
+        clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
+        status: subscription.status,
+      });
+    } catch (error: any) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ message: "Failed to create subscription: " + error.message });
+    }
+  });
+
+  app.get('/api/subscription-status', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user || !user.stripeSubscriptionId) {
+        return res.json({ status: 'inactive' });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+      
+      res.json({
+        status: subscription.status,
+        currentPeriodEnd: subscription.current_period_end,
+        priceId: subscription.items.data[0]?.price.id,
+      });
+    } catch (error: any) {
+      console.error("Error fetching subscription status:", error);
+      res.status(500).json({ message: "Failed to fetch subscription status" });
     }
   });
 

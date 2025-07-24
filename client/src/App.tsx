@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
+import Subscribe from "@/pages/subscribe";
 import Checkout from "@/pages/checkout";
 import { 
   ChartLine, 
@@ -91,6 +92,7 @@ function AuthenticatedApp({ user }: { user: any }) {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/settings" component={Settings} />
+          <Route path="/subscribe" component={Subscribe} />
           <Route path="/checkout" component={Checkout} />
           <Route component={NotFound} />
         </Switch>
