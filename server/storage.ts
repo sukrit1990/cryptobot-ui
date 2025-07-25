@@ -23,6 +23,8 @@ export interface IStorage {
   updateUserSetup(id: string, userData: any): Promise<User>;
   updateUserSettings(id: string, settings: UpdateUserSettings): Promise<User>;
   updateStripeCustomerId(id: string, customerId: string): Promise<User>;
+  getAllUsersWithSubscriptions(): Promise<User[]>;
+  updateUser(id: string, updates: Partial<User>): Promise<User>;
   
   // Portfolio operations
   getPortfolioByUserId(userId: string): Promise<Portfolio | undefined>;
@@ -124,6 +126,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user;
+  }
+
+  async getAllUsersWithSubscriptions(): Promise<User[]> {
+    const allUsers = await db.select().from(users);
+    // Filter users that have active Stripe subscriptions
+    return allUsers.filter(user => user.stripeSubscriptionId && user.stripeSubscriptionId.trim() !== '');
   }
 
   // Portfolio operations

@@ -7,6 +7,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 import session from "express-session";
 import memorystore from "memorystore";
+import fetch from "node-fetch";
 
 // Initialize Stripe only if secret key is available
 let stripe: Stripe | null = null;
@@ -990,6 +991,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to report usage: " + error.message });
     }
   });
+
+  // Daily Usage Reporting Job - Reports usage for all users with active subscriptions
+  async function reportDailyUsageForAllUsers() {
+    console.log('Starting daily usage reporting job...');
+    
+    try {
+      // Get all users with active Stripe subscriptions
+      const users = await storage.getAllUsersWithSubscriptions();
+      
+      for (const user of users) {
+        try {
+          if (!user.email || !user.stripeSubscriptionId) {
+            console.log(`Skipping user ${user.id}: missing email or subscription`);
+            continue;
+          }
+
+          // Fetch profit data from CryptoBot API
+          const profitResponse = await fetch(
+            `https://cryptobot-api-f15f3256ac28.herokuapp.com/profit?email=${encodeURIComponent(user.email)}`,
+            {
+              headers: {
+                'accept': 'application/json',
+                'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+              }
+            }
+          );
+
+          if (!profitResponse.ok) {
+            console.error(`Failed to fetch profit for user ${user.email}: ${profitResponse.status}`);
+            continue;
+          }
+
+          const profitData = await profitResponse.json();
+          console.log(`Profit data for ${user.email}:`, profitData);
+
+          // Extract profit amount (use latest profit or total profit)
+          let usageQuantity = 0;
+          if (profitData.profit && profitData.profit.length > 0) {
+            // Get the latest profit entry
+            const latestProfit = profitData.profit[profitData.profit.length - 1];
+            usageQuantity = Math.max(0, Math.round(latestProfit.PROFIT || 0));
+          }
+
+          console.log(`Reporting usage for ${user.email}: ${usageQuantity}`);
+
+          // Get subscription details
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          if (subscription.status !== 'active') {
+            console.log(`Skipping inactive subscription for user ${user.email}`);
+            continue;
+          }
+
+          const subscriptionItemId = subscription.items.data[0].id;
+
+          // Report usage to Stripe
+          const usageRecord = await stripe.usageRecords.create(subscriptionItemId, {
+            quantity: usageQuantity,
+            timestamp: Math.floor(Date.now() / 1000),
+            action: 'set',
+          });
+
+          console.log(`Successfully reported usage for ${user.email}: ${usageQuantity} units, record ID: ${usageRecord.id}`);
+
+        } catch (userError: any) {
+          console.error(`Error processing user ${user.email}:`, userError.message);
+        }
+      }
+
+      console.log('Daily usage reporting job completed');
+    } catch (error: any) {
+      console.error('Error in daily usage reporting job:', error);
+    }
+  }
+
+  // Manual trigger endpoint for daily usage reporting (for testing)
+  app.post('/api/report-daily-usage', async (req, res) => {
+    try {
+      await reportDailyUsageForAllUsers();
+      res.json({ message: "Daily usage reporting completed" });
+    } catch (error: any) {
+      console.error("Manual daily usage reporting error:", error);
+      res.status(500).json({ message: "Failed to run daily usage reporting: " + error.message });
+    }
+  });
+
+  // Schedule daily usage reporting (runs at 2 AM daily)
+  const scheduleInterval = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  
+  // Calculate time until next 2 AM
+  function getTimeUntilNext2AM() {
+    const now = new Date();
+    const next2AM = new Date();
+    next2AM.setHours(2, 0, 0, 0);
+    
+    // If 2 AM today has passed, schedule for tomorrow
+    if (now > next2AM) {
+      next2AM.setDate(next2AM.getDate() + 1);
+    }
+    
+    return next2AM.getTime() - now.getTime();
+  }
+
+  // Schedule the first run and then repeat daily
+  setTimeout(() => {
+    reportDailyUsageForAllUsers();
+    
+    // Then run every 24 hours
+    setInterval(reportDailyUsageForAllUsers, scheduleInterval);
+  }, getTimeUntilNext2AM());
+
+  console.log('Daily usage reporting scheduled to run at 2 AM daily');
 
   app.get('/api/subscription-status', async (req, res) => {
     try {
