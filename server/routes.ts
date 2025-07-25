@@ -956,6 +956,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cancel subscription endpoint
+  app.post('/api/cancel-subscription', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user || !user.stripeSubscriptionId) {
+        return res.status(400).json({ message: "No active subscription found" });
+      }
+
+      // Cancel the subscription at period end
+      const subscription = await stripe.subscriptions.update(user.stripeSubscriptionId, {
+        cancel_at_period_end: true
+      });
+
+      // Remove subscription ID from user record
+      await storage.updateUser(session.userId, { stripeSubscriptionId: null });
+
+      // Toggle account state to inactive if currently active
+      if (user.email) {
+        try {
+          const accountResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account_state?email=${encodeURIComponent(user.email)}`, {
+            method: 'GET',
+            headers: {
+              'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA',
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (accountResponse.ok) {
+            const accountData = await accountResponse.json();
+            console.log("Current account state:", accountData);
+
+            // If account is active (state: 'A'), toggle to inactive
+            if (accountData.state === 'A') {
+              const toggleResponse = await fetch('https://cryptobot-api-f15f3256ac28.herokuapp.com/toggle_account_state', {
+                method: 'POST',
+                headers: {
+                  'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email: user.email })
+              });
+
+              if (toggleResponse.ok) {
+                console.log("Account state toggled to inactive");
+              } else {
+                console.error("Failed to toggle account state:", await toggleResponse.text());
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error toggling account state:", error);
+        }
+      }
+
+      res.json({
+        message: "Subscription cancelled successfully",
+        subscription_id: subscription.id,
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        current_period_end: subscription.current_period_end
+      });
+    } catch (error: any) {
+      console.error("Error cancelling subscription:", error);
+      res.status(500).json({ message: "Failed to cancel subscription: " + error.message });
+    }
+  });
+
   // Step 3: Report Usage for Metered Billing
   app.post('/api/report-usage', async (req, res) => {
     try {

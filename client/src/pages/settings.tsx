@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { 
   Settings as SettingsIcon, 
   Shield, 
@@ -157,6 +158,7 @@ export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showSubscriptionForm, setShowSubscriptionForm] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/auth/session"],
@@ -237,7 +239,29 @@ export default function Settings() {
     },
   });
 
-
+  // Cancel subscription mutation
+  const cancelSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/cancel-subscription");
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Subscription cancelled",
+        description: "Your subscription has been cancelled and automated investing is now inactive.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription-status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/account/state"] });
+      setShowCancelDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Cancellation failed",
+        description: error.message || "Failed to cancel subscription.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const onSubmit = (data: any) => {
     settingsMutation.mutate(data);
@@ -492,10 +516,18 @@ export default function Settings() {
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right space-y-2">
                       <p className="text-sm text-green-700">
                         Subscription ID: {subscriptionStatus.subscriptionId?.slice(-8)}
                       </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setShowCancelDialog(true)}
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        Cancel Subscription
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -539,6 +571,34 @@ export default function Settings() {
             )}
           </CardContent>
         </Card>
+
+        {/* Cancel Subscription Alert Dialog */}
+        <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to cancel your subscription? This will:
+                <ul className="mt-2 list-disc list-inside space-y-1">
+                  <li>Cancel your current subscription at the end of the billing period</li>
+                  <li>Turn off automated investing immediately</li>
+                  <li>Stop all future billing</li>
+                </ul>
+                You can resubscribe at any time to reactivate these features.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => cancelSubscriptionMutation.mutate()}
+                disabled={cancelSubscriptionMutation.isPending}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {cancelSubscriptionMutation.isPending ? "Cancelling..." : "Cancel Subscription"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Account Security */}
         <Card>
