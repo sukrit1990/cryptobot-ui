@@ -869,25 +869,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let customerId = user.stripeCustomerId;
       
       if (!customerId) {
+        // 1. Create customer
         const customer = await stripe.customers.create({
           email: user.email || undefined,
           name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
-          payment_method: payment_method_id,
-          invoice_settings: {
-            default_payment_method: payment_method_id
-          }
         });
         
         customerId = customer.id;
         await storage.updateUser(session.userId, { stripeCustomerId: customerId });
-      } else {
-        // Update existing customer with new payment method
-        await stripe.customers.update(customerId, {
-          invoice_settings: {
-            default_payment_method: payment_method_id
-          }
-        });
       }
+
+      // 2. Attach payment method to the customer
+      await stripe.paymentMethods.attach(payment_method_id, {
+        customer: customerId,
+      });
+
+      // 3. Set payment method as default
+      await stripe.customers.update(customerId, {
+        invoice_settings: {
+          default_payment_method: payment_method_id,
+        }
+      });
 
       res.json({ customer_id: customerId });
     } catch (error: any) {
