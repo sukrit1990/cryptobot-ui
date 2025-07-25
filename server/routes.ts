@@ -1290,6 +1290,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete account endpoint
+  app.delete('/api/account', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Get user to fetch their email and subscription info
+      const user = await storage.getUser(session.userId);
+      if (!user || !user.email) {
+        return res.status(400).json({ message: "User not found" });
+      }
+
+      console.log(`Deleting account for user: ${user.email}`);
+
+      // 1. Cancel Stripe subscription if exists
+      if (user.stripeSubscriptionId && stripe) {
+        try {
+          await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+          console.log(`Cancelled Stripe subscription: ${user.stripeSubscriptionId}`);
+        } catch (stripeError) {
+          console.error('Error cancelling Stripe subscription:', stripeError);
+          // Continue with deletion even if Stripe cancellation fails
+        }
+      }
+
+      // 2. Delete from CryptoBot system
+      try {
+        const response = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account?email=${encodeURIComponent(user.email)}`, {
+          method: 'DELETE',
+          headers: {
+            'accept': 'application/json',
+            'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+          }
+        });
+
+        if (!response.ok) {
+          console.error('CryptoBot API deletion error:', response.status, response.statusText);
+          // Continue with local deletion even if CryptoBot deletion fails
+        } else {
+          console.log('Successfully deleted from CryptoBot system');
+        }
+      } catch (cryptoBotError) {
+        console.error('Error deleting from CryptoBot:', cryptoBotError);
+        // Continue with local deletion even if CryptoBot deletion fails
+      }
+
+      // 3. Delete from local database
+      await storage.deleteUser(session.userId);
+      console.log(`Deleted user from local database: ${session.userId}`);
+
+      // 4. Destroy session
+      (req.session as any).userId = null;
+      (req.session as any).isAuthenticated = false;
+      req.session.destroy(() => {
+        console.log(`Session destroyed for deleted user`);
+      });
+
+      res.json({ message: "Account deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      res.status(500).json({ message: "Failed to delete account" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

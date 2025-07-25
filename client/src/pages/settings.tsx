@@ -160,6 +160,7 @@ export default function Settings() {
   const [showSubscriptionForm, setShowSubscriptionForm] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isEditingFunds, setIsEditingFunds] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/auth/session"],
@@ -272,6 +273,31 @@ export default function Settings() {
       toast({
         title: "Cancellation failed",
         description: error.message || "Failed to cancel subscription.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete account mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", "/api/account");
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Account deleted",
+        description: "Your account has been permanently deleted.",
+      });
+      // Redirect to home page after deletion
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2000);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Deletion failed",
+        description: error.message || "Failed to delete account.",
         variant: "destructive",
       });
     },
@@ -628,6 +654,90 @@ export default function Settings() {
         </AlertDialog>
 
         {/* Account Security */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center text-red-600">
+              <UserIcon className="mr-2" size={20} />
+              Account Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h4 className="font-medium text-red-800 mb-2">Delete Account</h4>
+                <p className="text-sm text-red-700 mb-4">
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+                <ul className="text-sm text-red-600 mb-4 space-y-1">
+                  <li>• All portfolio data will be removed</li>
+                  <li>• Active subscriptions will be cancelled</li>
+                  <li>• Account will be removed from CryptoBot system</li>
+                  <li>• You will be immediately signed out</li>
+                </ul>
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="w-full"
+                >
+                  Delete Account
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Delete Account Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-red-600">Delete Account</AlertDialogTitle>
+              <AlertDialogDescription>
+                <div className="space-y-3">
+                  <p><strong>This action is permanent and cannot be undone.</strong></p>
+                  <p>Deleting your account will:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>Remove all your portfolio and investment data</li>
+                    <li>Cancel any active subscriptions immediately</li>
+                    <li>Delete your account from the CryptoBot trading system</li>
+                    <li>Remove all stored API credentials and settings</li>
+                    <li>Sign you out and prevent future access</li>
+                  </ul>
+                  <p className="text-red-600 font-medium">
+                    Type "DELETE" below to confirm account deletion:
+                  </p>
+                  <Input
+                    id="delete-confirmation"
+                    placeholder="Type DELETE to confirm"
+                    className="mt-2"
+                  />
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep Account</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => {
+                  const input = document.getElementById('delete-confirmation') as HTMLInputElement;
+                  if (input?.value === 'DELETE') {
+                    deleteAccountMutation.mutate();
+                  } else {
+                    toast({
+                      title: "Confirmation required",
+                      description: "Please type 'DELETE' to confirm account deletion.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                disabled={deleteAccountMutation.isPending}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Legacy Account Security Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">

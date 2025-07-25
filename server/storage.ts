@@ -25,6 +25,7 @@ export interface IStorage {
   updateStripeCustomerId(id: string, customerId: string): Promise<User>;
   getAllUsersWithSubscriptions(): Promise<User[]>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
+  deleteUser(id: string): Promise<void>;
   
   // Portfolio operations
   getPortfolioByUserId(userId: string): Promise<Portfolio | undefined>;
@@ -200,6 +201,15 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(paymentMethods)
       .where(eq(paymentMethods.id, id));
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    // Delete related records first
+    await db.delete(paymentMethods).where(eq(paymentMethods.userId, id));
+    await db.delete(portfolios).where(eq(portfolios.userId, id));
+    
+    // Delete the user record
+    await db.delete(users).where(eq(users.id, id));
   }
 }
 
