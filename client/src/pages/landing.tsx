@@ -88,8 +88,14 @@ export default function Landing() {
         title: "Account created successfully!",
         description: "Welcome to CryptoInvest Pro. Your account is now ready.",
       });
+      // Invalidate all auth-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      
+      // Small delay to ensure session is set on server, then reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     },
     onError: (error: any) => {
       toast({

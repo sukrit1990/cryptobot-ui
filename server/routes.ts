@@ -141,12 +141,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Set user in session for auto-login
-      (req.session as any).user = { 
-        id: user.id, 
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName
-      };
+      (req.session as any).userId = user.id;
+      (req.session as any).isAuthenticated = true;
 
       res.json({ 
         message: "Account created successfully!",
