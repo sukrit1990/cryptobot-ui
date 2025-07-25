@@ -159,6 +159,7 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const [showSubscriptionForm, setShowSubscriptionForm] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isEditingFunds, setIsEditingFunds] = useState(false);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/auth/session"],
@@ -216,6 +217,7 @@ export default function Settings() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       queryClient.invalidateQueries({ queryKey: ["/api/account/fund"] });
+      setIsEditingFunds(false);
     },
     onError: (error: any) => {
       toast({
@@ -379,15 +381,59 @@ export default function Settings() {
                   name="initialFunds"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Invested Amount (SGD)</FormLabel>
+                      <FormLabel className="flex items-center justify-between">
+                        <span>Invested Amount (SGD)</span>
+                        {!isEditingFunds && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsEditingFunds(true)}
+                            className="text-sm text-blue-600 hover:text-blue-700 h-auto p-1"
+                          >
+                            Edit
+                          </Button>
+                        )}
+                      </FormLabel>
                       <FormControl>
                         <div className="relative">
                           <span className="absolute left-3 top-3 text-gray-500">S$</span>
-                          <Input
-                            type="number"
-                            className="pl-10"
-                            {...field}
-                          />
+                          {isEditingFunds ? (
+                            <div className="flex space-x-2">
+                              <Input
+                                type="number"
+                                className="pl-10 flex-1"
+                                {...field}
+                                autoFocus
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setIsEditingFunds(false);
+                                  // Reset to original value if user cancels
+                                  if (fundData?.fund) {
+                                    form.setValue('initialFunds', fundData.fund.toString());
+                                  }
+                                }}
+                                className="px-3"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-900 min-h-[40px] flex items-center">
+                              {fundLoading ? (
+                                <div className="flex items-center">
+                                  <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-2"></div>
+                                  Loading...
+                                </div>
+                              ) : (
+                                `${parseFloat(field.value || '0').toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              )}
+                            </div>
+                          )}
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -397,13 +443,15 @@ export default function Settings() {
 
 
 
-                <Button 
-                  type="submit" 
-                  disabled={settingsMutation.isPending || accountLoading}
-                  className="w-full"
-                >
-                  {settingsMutation.isPending ? "Updating..." : "Update Funds"}
-                </Button>
+                {isEditingFunds && (
+                  <Button 
+                    type="submit" 
+                    disabled={settingsMutation.isPending || accountLoading || fundLoading}
+                    className="w-full"
+                  >
+                    {settingsMutation.isPending ? "Updating..." : "Update Funds"}
+                  </Button>
+                )}
               </form>
             </Form>
           </CardContent>
