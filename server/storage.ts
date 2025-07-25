@@ -60,9 +60,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(userData: UpsertUser): Promise<User> {
+    // Remove the id from userData if present, let DB generate it
+    const { id, ...userDataWithoutId } = userData as any;
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values(userDataWithoutId)
       .returning();
     return user;
   }

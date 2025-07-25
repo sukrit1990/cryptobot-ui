@@ -190,7 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Validate minimum investment amount
-      const minInvestment = 1000;
+      const minInvestment = 500;
       if (parseFloat(userData.initialFunds || "0") < minInvestment) {
         return res.status(400).json({ 
           message: `Minimum investment amount is S$${minInvestment}` 
@@ -224,11 +224,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cryptoBotResponse = await cryptoBotSignup.json();
       console.log('CryptoBot signup successful:', cryptoBotResponse);
 
-      // Create user in database (generate a unique ID)
-      const userId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      // Create user in database (let the database generate the ID)
       const { confirmPassword, ...userDataWithoutConfirm } = userData;
       const newUser = await storage.createUser({
-        id: userId,
         ...userDataWithoutConfirm,
       });
 
@@ -375,7 +373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userData = insertUserSchema.parse(req.body);
       
       // Validate minimum investment amount
-      const minInvestment = 1000;
+      const minInvestment = 500;
       if (parseFloat(userData.initialFunds || "0") < minInvestment) {
         return res.status(400).json({ 
           message: `Minimum investment amount is S$${minInvestment}` 
