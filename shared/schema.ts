@@ -101,7 +101,7 @@ export const updateUserSettingsSchema = createInsertSchema(users).pick({
   initialFunds: true,
   investmentActive: true,
 }).extend({
-  initialFunds: z.string().transform(val => parseFloat(val)),
+  initialFunds: z.union([z.string(), z.number()]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
