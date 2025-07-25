@@ -362,15 +362,22 @@ export default function Settings() {
                     <h4 className="font-medium text-gray-900">Automated Investing</h4>
                     <p className="text-sm text-gray-600">AI-powered portfolio management</p>
                     {accountState && (
-                      <div className="mt-2 flex items-center">
-                        <div className={`h-2 w-2 rounded-full mr-2 ${
-                          accountState.state === 'A' ? 'bg-green-500' : 'bg-gray-400'
-                        }`} />
-                        <span className={`text-xs ${
-                          accountState.state === 'A' ? 'text-green-600' : 'text-gray-500'
-                        }`}>
-                          Status: {accountState.state === 'A' ? 'Active' : 'Inactive'}
-                        </span>
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center">
+                          <div className={`h-2 w-2 rounded-full mr-2 ${
+                            accountState.state === 'A' ? 'bg-green-500' : 'bg-gray-400'
+                          }`} />
+                          <span className={`text-xs ${
+                            accountState.state === 'A' ? 'text-green-600' : 'text-gray-500'
+                          }`}>
+                            Status: {accountState.state === 'A' ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        {!subscriptionStatus?.hasSubscription && (
+                          <div className="text-xs text-orange-600">
+                            Subscription required to activate
+                          </div>
+                        )}
                       </div>
                     )}
                     {accountLoading && (
@@ -389,11 +396,20 @@ export default function Settings() {
                           <Switch
                             checked={field.value}
                             onCheckedChange={(checked) => {
+                              // Only allow activation if user has subscription
+                              if (checked && !subscriptionStatus?.hasSubscription) {
+                                toast({
+                                  title: "Subscription required",
+                                  description: "You need an active subscription to enable automated investment.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
                               field.onChange(checked);
                               // Call API to toggle the state
                               toggleMutation.mutate();
                             }}
-                            disabled={accountLoading || toggleMutation.isPending}
+                            disabled={accountLoading || toggleMutation.isPending || subscriptionLoading}
                           />
                         </FormControl>
                       </FormItem>
