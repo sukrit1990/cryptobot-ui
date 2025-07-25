@@ -803,93 +803,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Save payment method after setup and create subscription
-  app.post('/api/payment-methods', async (req, res) => {
-    try {
-      const session = req.session as any;
-      if (!session?.userId || !session?.isAuthenticated) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-
-      const { paymentMethodId } = req.body;
-      if (!paymentMethodId) {
-        return res.status(400).json({ message: "Payment method ID required" });
-      }
-
-      const user = await storage.getUser(session.userId);
-      if (!user || !user.stripeCustomerId) {
-        return res.status(400).json({ message: "Stripe customer not found" });
-      }
-
-      if (!stripe) {
-        return res.status(500).json({ message: "Stripe is not configured" });
-      }
-
-      // Attach payment method to customer
-      await stripe.paymentMethods.attach(paymentMethodId, {
-        customer: user.stripeCustomerId,
-      });
-
-      // Check if user already has an active subscription
-      const existingSubscriptions = await stripe.subscriptions.list({
-        customer: user.stripeCustomerId,
-        status: 'active',
-      });
-
-      let subscriptionResult = null;
-
-      if (existingSubscriptions.data.length === 0) {
-        // Create new subscription with the payment method
-        const subscription = await stripe.subscriptions.create({
-          customer: user.stripeCustomerId,
-          items: [{
-            price: 'price_1RoRk1AU0aPHWB2SEy3NtXI8', // Singapore-specific price
-          }],
-          default_payment_method: paymentMethodId,
-          payment_settings: {
-            save_default_payment_method: 'on_subscription',
-            payment_method_types: ['card'],
-          },
-        });
-
-        // Update user with subscription ID
-        await storage.updateUser(session.userId, { 
-          stripeSubscriptionId: subscription.id 
-        });
-
-        subscriptionResult = {
-          subscriptionId: subscription.id,
-          status: subscription.status,
-          message: "Subscription created successfully"
-        };
-      } else {
-        subscriptionResult = {
-          subscriptionId: existingSubscriptions.data[0].id,
-          status: existingSubscriptions.data[0].status,
-          message: "Existing subscription updated with new payment method"
-        };
-
-        // Update default payment method for existing subscription
-        await stripe.subscriptions.update(existingSubscriptions.data[0].id, {
-          default_payment_method: paymentMethodId,
-        });
-      }
-
-      res.json({ 
-        success: true, 
-        message: "Payment method added successfully",
-        subscription: subscriptionResult
-      });
-    } catch (error: any) {
-      console.error("Save payment method error:", error);
-      res.status(500).json({ 
-        message: "Failed to save payment method: " + error.message 
-      });
-    }
-  });
-
-  // Subscription management endpoints
-  app.post('/api/create-subscription', async (req, res) => {
+  // Setup intent for collecting payment method (card only)
+  app.post('/api/setup-payment-method', async (req, res) => {
     try {
       const session = req.session as any;
       if (!session?.userId || !session?.isAuthenticated) {
@@ -905,43 +820,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // Create setup intent for card payment method collection
+      const setupIntent = await stripe.setupIntents.create({
+        usage: 'off_session',
+        payment_method_types: ['card'], // Card payments only
+        metadata: {
+          user_id: session.userId,
+          email: user.email || ''
+        }
+      });
+
+      res.json({ 
+        client_secret: setupIntent.client_secret,
+        setup_intent_id: setupIntent.id
+      });
+    } catch (error: any) {
+      console.error("Setup payment method error:", error);
+      res.status(500).json({ 
+        message: "Failed to setup payment method: " + error.message 
+      });
+    }
+  });
+
+  // Step 1: Create Stripe Customer with Payment Method
+  app.post('/api/create-customer', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { payment_method_id } = req.body;
+      if (!payment_method_id) {
+        return res.status(400).json({ message: "Payment method ID required" });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Create or update Stripe customer with payment method
       let customerId = user.stripeCustomerId;
       
-      // Create Stripe customer if doesn't exist
       if (!customerId) {
         const customer = await stripe.customers.create({
           email: user.email || undefined,
           name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || undefined,
+          payment_method: payment_method_id,
+          invoice_settings: {
+            default_payment_method: payment_method_id
+          }
         });
         
         customerId = customer.id;
         await storage.updateUser(session.userId, { stripeCustomerId: customerId });
+      } else {
+        // Update existing customer with new payment method
+        await stripe.customers.update(customerId, {
+          invoice_settings: {
+            default_payment_method: payment_method_id
+          }
+        });
+      }
+
+      res.json({ customer_id: customerId });
+    } catch (error: any) {
+      console.error("Error creating customer:", error);
+      res.status(500).json({ message: "Failed to create customer: " + error.message });
+    }
+  });
+
+  // Step 2: Create Metered Subscription
+  app.post('/api/create-subscription', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user || !user.stripeCustomerId) {
+        return res.status(400).json({ message: "Stripe customer required. Create customer first." });
       }
 
       // Check if user already has an active subscription
       if (user.stripeSubscriptionId) {
-        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-        if (subscription.status === 'active') {
+        const existingSubscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+        if (existingSubscription.status === 'active') {
           return res.json({
-            subscriptionId: subscription.id,
-            status: subscription.status,
+            subscription_id: existingSubscription.id,
+            subscription_item_id: existingSubscription.items.data[0].id,
             message: "Already subscribed"
           });
         }
       }
 
-      // Create new subscription
+      // Create new metered subscription
       const subscription = await stripe.subscriptions.create({
-        customer: customerId,
+        customer: user.stripeCustomerId,
         items: [{
-          price: 'price_1RoRk1AU0aPHWB2SEy3NtXI8', // Singapore-specific price
+          price: 'price_1RoRk1AU0aPHWB2SEy3NtXI8', // Metered price ID
         }],
-        payment_behavior: 'default_incomplete',
-        payment_settings: {
-          save_default_payment_method: 'on_subscription',
-        },
         expand: ['latest_invoice.payment_intent'],
       });
+
+      const subscriptionItemId = subscription.items.data[0].id;
 
       // Update user with subscription ID
       await storage.updateUser(session.userId, { 
@@ -949,13 +941,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json({
-        subscriptionId: subscription.id,
-        clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
-        status: subscription.status,
+        subscription_id: subscription.id,
+        subscription_item_id: subscriptionItemId,
+        status: subscription.status
       });
     } catch (error: any) {
       console.error("Error creating subscription:", error);
       res.status(500).json({ message: "Failed to create subscription: " + error.message });
+    }
+  });
+
+  // Step 3: Report Usage for Metered Billing
+  app.post('/api/report-usage', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { usage_quantity } = req.body;
+      if (!usage_quantity) {
+        return res.status(400).json({ message: "Usage quantity required" });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user || !user.stripeSubscriptionId) {
+        return res.status(400).json({ message: "Active subscription required" });
+      }
+
+      // Get subscription to find the subscription item ID
+      const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+      const subscriptionItemId = subscription.items.data[0].id;
+
+      // Create usage record
+      const usageRecord = await stripe.usageRecords.create(subscriptionItemId, {
+        quantity: usage_quantity,
+        timestamp: Math.floor(Date.now() / 1000),
+        action: 'set', // or 'increment'
+      });
+
+      res.json({ usage_record_id: usageRecord.id });
+    } catch (error: any) {
+      console.error("Error reporting usage:", error);
+      res.status(500).json({ message: "Failed to report usage: " + error.message });
     }
   });
 
@@ -979,6 +1011,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         status: subscription.status,
+        subscription_id: subscription.id,
+        subscription_item_id: subscription.items.data[0]?.id,
         currentPeriodEnd: subscription.current_period_end,
         priceId: subscription.items.data[0]?.price.id,
       });

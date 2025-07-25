@@ -23,6 +23,15 @@ Preferred communication style: Simple, everyday language.
 - Integrated automated investing toggle with real CryptoBot API state control
 - Toggle reflects actual account status: "A" = Active, "I" = Inactive with visual indicators
 
+### Stripe Metered Subscription Implementation (July 25, 2025)
+- Implemented Step 1 of metered subscription flow with card-only payments
+- Created `/api/create-customer` endpoint to handle Stripe customer creation with payment method
+- Built `/api/create-subscription` endpoint for metered subscription using price_1RoRk1AU0aPHWB2SEy3NtXI8
+- Added `/api/report-usage` endpoint for metered billing usage tracking
+- Setup `/api/setup-payment-method` for secure card payment method collection
+- Removed previous payment section from settings page as requested
+- All endpoints support only card payments, no alternative payment methods
+
 ### CryptoBot API Integration (July 23, 2025)
 - Updated user registration flow to call external CryptoBot API
 - Account creation now validates credentials through https://cryptobot-api-f15f3256ac28.herokuapp.com/signup
