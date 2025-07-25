@@ -1103,6 +1103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   console.log('Daily usage reporting scheduled to run at 2 AM daily');
 
+  // Subscription status endpoint
   app.get('/api/subscription-status', async (req, res) => {
     try {
       const session = req.session as any;
@@ -1111,26 +1112,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.getUser(session.userId);
-      if (!user || !user.stripeSubscriptionId) {
-        return res.json({ status: 'inactive' });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
       }
 
-      if (!stripe) {
-        return res.status(500).json({ message: "Stripe is not configured" });
-      }
-
-      const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-      
       res.json({
-        status: subscription.status,
-        subscription_id: subscription.id,
-        subscription_item_id: subscription.items.data[0]?.id,
-        currentPeriodEnd: subscription.current_period_end,
-        priceId: subscription.items.data[0]?.price.id,
+        hasSubscription: !!user.stripeSubscriptionId,
+        subscriptionId: user.stripeSubscriptionId,
+        customerId: user.stripeCustomerId,
       });
     } catch (error: any) {
-      console.error("Error fetching subscription status:", error);
-      res.status(500).json({ message: "Failed to fetch subscription status" });
+      console.error("Error checking subscription status:", error);
+      res.status(500).json({ message: "Failed to check subscription status: " + error.message });
     }
   });
 

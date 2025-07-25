@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Subscribe</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #card-element { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+    #submit { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h2>Subscribe to Dynamic Usage Plan</h2>
+
+  <form id="subscription-form">
+    <label for="email">Email</label><br>
+    <input type="email" id="email" required /><br><br>
+
+    <label>Card Info</label><br>
+    <div id="card-element"></div><br>
+
+    <button id="submit">Subscribe</button>
+  </form>
+
+  <div id="message"></div>
+
+  <script>
+    const stripe = Stripe("pk_test_..."); // Replace with your Stripe publishable key
+    const elements = stripe.elements();
+    const card = elements.create("card");
+    card.mount("#card-element");
+
+    const form = document.getElementById("subscription-form");
+    const message = document.getElementById("message");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      message.textContent = "Processing...";
+
+      const email = document.getElementById("email").value;
+
+      const { paymentMethod, error } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: card,
+        billing_details: { email },
+      });
+
+      if (error) {
+        message.textContent = error.message;
+        return;
+      }
+
+      // Step 1: Create customer
+      const customerRes = await fetch('/create-customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          payment_method_id: paymentMethod.id,
+        }),
+      });
+
+      const customerData = await customerRes.json();
+      if (customerData.error) {
+        message.textContent = customerData.error;
+        return;
+      }
+
+      // Step 2: Create subscription
+      const subscriptionRes = await fetch('/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_id: customerData.customer_id }),
+      });
+
+      const subscriptionData = await subscriptionRes.json();
+      if (subscriptionData.error) {
+        message.textContent = subscriptionData.error;
+        return;
+      }
+
+      message.textContent = "Subscription successful!";
+      console.log("Subscription ID:", subscriptionData.subscription_id);
+      console.log("Subscription Item ID:", subscriptionData.subscription_item_id);
+
+      // You can now use subscription_item_id for usage tracking
+    });
+  </script>
+</body>
+</html>

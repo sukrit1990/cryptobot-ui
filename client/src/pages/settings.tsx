@@ -11,14 +11,136 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Settings as SettingsIcon, 
   Shield, 
   RefreshCw, 
   Key,
   Lock,
-  User as UserIcon
+  User as UserIcon,
+  CreditCard,
+  CheckCircle
 } from "lucide-react";
+import { Elements, useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+
+const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_51RnfLYAU0aPHWB2SMsCnGHILlcH06tWUUMg98VEVbpJ8KezPduuM8Z38icXto6tn928MdqlnwFxJiycTmt81h0PD00lNOyG8Bs';
+const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
+
+function SubscriptionForm({ onClose }: { onClose: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) {
+        throw new Error("Card element not found");
+      }
+
+      // Create payment method
+      const { paymentMethod, error } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+      });
+
+      if (error) {
+        toast({
+          title: "Payment method creation failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Step 1: Create customer
+      const customerResponse = await apiRequest("POST", "/api/create-customer", {
+        payment_method_id: paymentMethod.id,
+      });
+
+      if (!customerResponse.ok) {
+        throw new Error("Failed to create customer");
+      }
+
+      const customerData = await customerResponse.json();
+
+      // Step 2: Create subscription
+      const subscriptionResponse = await apiRequest("POST", "/api/create-subscription", {
+        customer_id: customerData.customer_id,
+      });
+
+      if (!subscriptionResponse.ok) {
+        throw new Error("Failed to create subscription");
+      }
+
+      const subscriptionData = await subscriptionResponse.json();
+
+      toast({
+        title: "Subscription successful!",
+        description: `Your metered subscription is now active. Subscription ID: ${subscriptionData.subscription_id}`,
+      });
+
+      // Refresh subscription status
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription-status"] });
+      onClose();
+
+    } catch (error: any) {
+      toast({
+        title: "Subscription failed",
+        description: error.message || "Failed to create subscription.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Card Information
+        </label>
+        <div className="p-3 border border-gray-300 rounded-md">
+          <CardElement 
+            options={{
+              style: {
+                base: {
+                  fontSize: '16px',
+                  color: '#424770',
+                  '::placeholder': {
+                    color: '#aab7c4',
+                  },
+                },
+              },
+            }}
+          />
+        </div>
+      </div>
+      
+      <div className="flex justify-end space-x-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={!stripe || isProcessing}>
+          {isProcessing ? "Processing..." : "Subscribe"}
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 
 
@@ -27,6 +149,7 @@ import {
 export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showSubscriptionForm, setShowSubscriptionForm] = useState(false);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/auth/session"],
@@ -36,6 +159,12 @@ export default function Settings() {
   const { data: accountState, isLoading: accountLoading } = useQuery({
     queryKey: ["/api/account/state"],
     enabled: !!user, // Only fetch when user is available
+  });
+
+  // Fetch subscription status
+  const { data: subscriptionStatus, isLoading: subscriptionLoading } = useQuery({
+    queryKey: ["/api/subscription-status"],
+    enabled: !!user,
   });
 
 
@@ -318,6 +447,83 @@ export default function Settings() {
                 Update API Credentials
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Payment & Subscription Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Payment & Subscription
+            </CardTitle>
+            <CardDescription>
+              Manage your subscription for metered usage billing based on trading profits
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {subscriptionLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {subscriptionStatus?.hasSubscription ? (
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-green-50">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="font-medium text-green-900">Active Subscription</p>
+                        <p className="text-sm text-green-700">
+                          Metered billing enabled - you're charged based on trading profits
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-green-700">
+                        Subscription ID: {subscriptionStatus.subscriptionId?.slice(-8)}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-4 border rounded-lg bg-blue-50">
+                      <h4 className="font-medium text-blue-900 mb-2">Metered Usage Plan</h4>
+                      <p className="text-sm text-blue-700 mb-3">
+                        Pay only for what you earn! Our metered billing charges you based on your actual trading profits.
+                      </p>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• No fixed monthly fees</li>
+                        <li>• Billing based on daily profits</li>
+                        <li>• Transparent usage tracking</li>
+                        <li>• Card payments only</li>
+                      </ul>
+                    </div>
+                    
+                    <Elements stripe={stripePromise}>
+                      <Dialog open={showSubscriptionForm} onOpenChange={setShowSubscriptionForm}>
+                        <DialogTrigger asChild>
+                          <Button className="w-full">
+                            <CreditCard className="mr-2 h-4 w-4" />
+                            Subscribe Now
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Subscribe to Metered Plan</DialogTitle>
+                            <DialogDescription>
+                              Add your payment method to activate metered billing based on your trading profits.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <SubscriptionForm onClose={() => setShowSubscriptionForm(false)} />
+                        </DialogContent>
+                      </Dialog>
+                    </Elements>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
