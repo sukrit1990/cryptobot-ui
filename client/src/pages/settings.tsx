@@ -176,22 +176,34 @@ export default function Settings() {
     enabled: !!user,
   });
 
+  // Fetch current invested amount from CryptoBot API
+  const { data: fundData, isLoading: fundLoading } = useQuery({
+    queryKey: ["/api/account/fund"],
+    enabled: !!user,
+  });
+
 
 
   const form = useForm({
     resolver: zodResolver(updateUserSettingsSchema),
     defaultValues: {
-      initialFunds: user?.initialFunds?.toString() || '10000',
+      initialFunds: fundData?.fund?.toString() || user?.initialFunds?.toString() || '10000',
       investmentActive: accountState?.state === 'A' || false,
     },
   });
 
-  // Update form when account state changes
+  // Update form when account state or fund data changes
   useEffect(() => {
     if (accountState) {
       form.setValue('investmentActive', accountState.state === 'A');
     }
   }, [accountState, form]);
+
+  useEffect(() => {
+    if (fundData?.fund) {
+      form.setValue('initialFunds', fundData.fund.toString());
+    }
+  }, [fundData, form]);
 
   const settingsMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -203,6 +215,7 @@ export default function Settings() {
         description: "Your investment funds have been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/account/fund"] });
     },
     onError: (error: any) => {
       toast({
@@ -366,7 +379,7 @@ export default function Settings() {
                   name="initialFunds"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Investment Amount (SGD)</FormLabel>
+                      <FormLabel>Invested Amount (SGD)</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <span className="absolute left-3 top-3 text-gray-500">S$</span>

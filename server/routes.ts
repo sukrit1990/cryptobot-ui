@@ -358,6 +358,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current invested amount from CryptoBot API
+  app.get('/api/account/fund', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Get user to fetch their email
+      const user = await storage.getUser(session.userId);
+      if (!user || !user.email) {
+        return res.status(400).json({ message: "User email not found" });
+      }
+
+      console.log(`Fetching fund amount for user: ${user.email}`);
+
+      // Call CryptoBot API to get current fund amount
+      const response = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/fund?email=${encodeURIComponent(user.email)}`, {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+        }
+      });
+
+      if (!response.ok) {
+        console.error('CryptoBot API fund fetch error:', response.status, response.statusText);
+        return res.status(response.status).json({ 
+          message: `Failed to fetch fund amount: ${response.statusText}` 
+        });
+      }
+
+      const result = await response.json();
+      console.log('Fund amount fetched successfully:', result);
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching fund amount:", error);
+      res.status(500).json({ message: "Failed to fetch fund amount" });
+    }
+  });
+
   // Update user funds via CryptoBot API
   app.post('/api/settings', async (req, res) => {
     const session = req.session as any;
