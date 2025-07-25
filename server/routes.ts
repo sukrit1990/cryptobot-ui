@@ -1120,10 +1120,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // If user has subscription, get trial end date from Stripe
+      let trialEndsAt = null;
+      if (user.stripeSubscriptionId && stripe) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          trialEndsAt = subscription.trial_end;
+        } catch (error) {
+          console.error("Error fetching subscription details:", error);
+        }
+      }
+
       res.json({
         hasSubscription: !!user.stripeSubscriptionId,
         subscriptionId: user.stripeSubscriptionId,
         customerId: user.stripeCustomerId,
+        trialEndsAt,
       });
     } catch (error: any) {
       console.error("Error checking subscription status:", error);

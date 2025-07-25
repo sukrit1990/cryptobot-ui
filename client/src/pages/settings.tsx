@@ -87,9 +87,16 @@ function SubscriptionForm({ onClose }: { onClose: () => void }) {
 
       const subscriptionData = await subscriptionResponse.json();
 
+      // Show trial end date if trial is active
+      let description = `Your metered subscription is now active. Subscription ID: ${subscriptionData.subscription_id}`;
+      if (subscriptionData.trial_ends_at) {
+        const trialEnd = new Date(subscriptionData.trial_ends_at * 1000).toLocaleDateString();
+        description = `Trial started! You will be charged starting on ${trialEnd}. Subscription ID: ${subscriptionData.subscription_id}`;
+      }
+
       toast({
         title: "Subscription successful!",
-        description: `Your metered subscription is now active. Subscription ID: ${subscriptionData.subscription_id}`,
+        description,
       });
 
       // Refresh subscription status
@@ -478,6 +485,11 @@ export default function Settings() {
                         <p className="text-sm text-green-700">
                           Metered billing enabled - you're charged based on trading profits
                         </p>
+                        {subscriptionStatus?.trialEndsAt && (
+                          <p className="text-sm text-blue-700 mt-1">
+                            Free trial until {new Date(subscriptionStatus.trialEndsAt * 1000).toLocaleDateString()}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">

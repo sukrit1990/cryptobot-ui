@@ -124,9 +124,16 @@ export default function Subscribe() {
         setClientSecret(data.clientSecret);
         setShowPaymentForm(true);
       } else {
+        // Show trial end date if trial is active
+        let description = "Your subscription is now active!";
+        if (data.trial_ends_at) {
+          const trialEnd = new Date(data.trial_ends_at * 1000).toLocaleDateString();
+          description = `Trial started! You will be charged starting on ${trialEnd}.`;
+        }
+        
         toast({
           title: "Subscription activated",
-          description: "Your subscription is now active!",
+          description,
         });
       }
     },
