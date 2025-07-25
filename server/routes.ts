@@ -927,12 +927,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Create new metered subscription
+      // Create new metered subscription with 30-day trial
       const subscription = await stripe.subscriptions.create({
         customer: user.stripeCustomerId,
         items: [{
           price: 'price_1RoRk1AU0aPHWB2SEy3NtXI8', // Metered price ID
         }],
+        trial_period_days: 30, // 30-day free trial
         expand: ['latest_invoice.payment_intent'],
       });
 
@@ -946,7 +947,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         subscription_id: subscription.id,
         subscription_item_id: subscriptionItemId,
-        status: subscription.status
+        status: subscription.status,
+        trial_ends_at: subscription.trial_end
       });
     } catch (error: any) {
       console.error("Error creating subscription:", error);

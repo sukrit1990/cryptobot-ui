@@ -494,6 +494,7 @@ export default function Settings() {
                         Pay only for what you earn! Our metered billing charges you based on your actual trading profits.
                       </p>
                       <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• 30-day free trial period</li>
                         <li>• No fixed monthly fees</li>
                         <li>• Billing based on daily profits</li>
                         <li>• Transparent usage tracking</li>

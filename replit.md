@@ -31,6 +31,9 @@ Preferred communication style: Simple, everyday language.
 - Setup `/api/setup-payment-method` for secure card payment method collection
 - Removed previous payment section from settings page as requested
 - All endpoints support only card payments, no alternative payment methods
+- Fixed payment method attachment flow: Create → Attach → Set Default
+- Added 30-day free trial period to all new subscriptions
+- Integrated comprehensive payment & subscription section in settings page with status display
 
 ### CryptoBot API Integration (July 23, 2025)
 - Updated user registration flow to call external CryptoBot API
