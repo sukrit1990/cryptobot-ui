@@ -199,15 +199,15 @@ export default function Settings() {
     },
     onSuccess: () => {
       toast({
-        title: "Settings updated",
-        description: "Your investment settings have been saved.",
+        title: "Funds updated",
+        description: "Your investment funds have been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
     },
     onError: (error: any) => {
       toast({
         title: "Update failed",
-        description: error.message || "Failed to update settings.",
+        description: error.message || "Failed to update funds.",
         variant: "destructive",
       });
     },
@@ -389,7 +389,7 @@ export default function Settings() {
                   disabled={settingsMutation.isPending || accountLoading}
                   className="w-full"
                 >
-                  {settingsMutation.isPending ? "Updating..." : "Update Settings"}
+                  {settingsMutation.isPending ? "Updating..." : "Update Funds"}
                 </Button>
               </form>
             </Form>
