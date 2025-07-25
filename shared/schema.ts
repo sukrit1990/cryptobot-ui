@@ -100,7 +100,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const updateUserSettingsSchema = createInsertSchema(users).pick({
   initialFunds: true,
   investmentActive: true,
-  riskTolerance: true,
 }).extend({
   initialFunds: z.string().transform(val => parseFloat(val)),
 });

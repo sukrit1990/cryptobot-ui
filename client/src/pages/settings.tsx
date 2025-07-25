@@ -183,7 +183,6 @@ export default function Settings() {
     defaultValues: {
       initialFunds: user?.initialFunds?.toString() || '10000',
       investmentActive: accountState?.state === 'A' || false,
-      riskTolerance: user?.riskTolerance || 'moderate',
     },
   });
 
@@ -383,40 +382,7 @@ export default function Settings() {
                   )}
                 />
 
-                {/* Risk Level */}
-                <FormField
-                  control={form.control}
-                  name="riskTolerance"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Risk Tolerance</FormLabel>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { value: 'conservative', label: 'Conservative', desc: 'Low Risk', color: 'text-green-600' },
-                          { value: 'moderate', label: 'Moderate', desc: 'Medium Risk', color: 'text-blue-600' },
-                          { value: 'aggressive', label: 'Aggressive', desc: 'High Risk', color: 'text-red-600' }
-                        ].map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => field.onChange(option.value)}
-                            className={`p-3 text-center border rounded-lg transition-colors ${
-                              field.value === option.value
-                                ? 'border-primary bg-blue-50'
-                                : 'border-gray-300 hover:border-primary hover:bg-blue-50'
-                            }`}
-                          >
-                            <div className={`font-medium ${field.value === option.value ? 'text-primary' : option.color}`}>
-                              {option.label}
-                            </div>
-                            <div className="text-xs text-gray-500">{option.desc}</div>
-                          </button>
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
 
                 <Button 
                   type="submit" 
