@@ -269,13 +269,17 @@ export default function Landing() {
                               <span className="absolute left-3 top-3 text-gray-500">S$</span>
                               <Input 
                                 type="number" 
-                                placeholder="10000" 
+                                placeholder="500" 
+                                min="500"
                                 className="pl-10"
                                 {...field} 
                               />
                             </div>
                           </FormControl>
-                          <p className="text-xs text-gray-500">Minimum investment: S$1,000</p>
+                          <div className="text-xs text-gray-600 mt-1 flex items-start">
+                            <Info className="mr-1 mt-0.5" size={12} />
+                            Minimum S$500. You can change this amount later in settings.
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}

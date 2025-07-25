@@ -91,7 +91,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   lastName: z.string().min(1, "Last name is required"),
   geminiApiKey: z.string().min(1, "Gemini API key is required"),
   geminiApiSecret: z.string().min(1, "Gemini API secret is required"),
-  initialFunds: z.string().min(1, "Initial funds amount is required"),
+  initialFunds: z.string().min(1, "Initial funds amount is required")
+    .refine((val) => parseFloat(val) >= 500, "Minimum investment amount is S$500"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -101,7 +102,9 @@ export const updateUserSettingsSchema = createInsertSchema(users).pick({
   initialFunds: true,
   investmentActive: true,
 }).extend({
-  initialFunds: z.union([z.string(), z.number()]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
+  initialFunds: z.union([z.string(), z.number()])
+    .transform(val => typeof val === 'string' ? parseFloat(val) : val)
+    .refine(val => val >= 500, "Minimum investment amount is S$500"),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

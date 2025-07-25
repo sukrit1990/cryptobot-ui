@@ -189,7 +189,7 @@ export default function Settings() {
   const form = useForm({
     resolver: zodResolver(updateUserSettingsSchema),
     defaultValues: {
-      initialFunds: fundData?.fund?.toString() || user?.initialFunds?.toString() || '10000',
+      initialFunds: fundData?.fund?.toString() || user?.initialFunds?.toString() || '500',
       investmentActive: accountState?.state === 'A' || false,
     },
   });
