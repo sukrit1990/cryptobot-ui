@@ -178,6 +178,25 @@ export default function Landing() {
     }
   };
 
+  // Handle standalone OTP form submission
+  const onOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userDataForVerification || !otpCode || otpCode.length !== 6) return;
+
+    setIsLoading(true);
+    try {
+      await verifyOtpMutation.mutateAsync({
+        email: otpEmail,
+        code: otpCode,
+        userData: userDataForVerification
+      });
+    } catch (error) {
+      console.error('OTP verification failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const onSignIn = async (data: any) => {
     setIsLoading(true);
     try {
