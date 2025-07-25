@@ -2,115 +2,31 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateUserSettingsSchema, User, PaymentMethod } from "@shared/schema";
+import { updateUserSettingsSchema, User } from "@shared/schema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Settings as SettingsIcon, 
-  CreditCard, 
   Shield, 
   RefreshCw, 
   Key,
-  Plus,
-  Trash2,
   Lock,
   User as UserIcon
 } from "lucide-react";
-import { Elements, useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
 
-const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_51RnfLYAU0aPHWB2SMsCnGHILlcH06tWUUMg98VEVbpJ8KezPduuM8Z38icXto6tn928MdqlnwFxJiycTmt81h0PD00lNOyG8Bs';
-const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
-function PaymentMethodForm({ onClose }: { onClose: () => void }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
 
-    if (!stripe || !elements) {
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const { error, setupIntent } = await stripe.confirmSetup({
-        elements,
-        redirect: 'if_required',
-      });
-
-      if (error) {
-        toast({
-          title: "Payment method setup failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else if (setupIntent && setupIntent.payment_method) {
-        // Save payment method to backend and create subscription
-        const response = await apiRequest("POST", "/api/payment-methods", {
-          paymentMethodId: setupIntent.payment_method,
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          
-          toast({
-            title: "Payment method added",
-            description: result.subscription ? 
-              `Payment method added and ${result.subscription.message.toLowerCase()}` :
-              "Your payment method has been added successfully.",
-          });
-          
-          queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/subscription-status"] });
-          onClose();
-        } else {
-          throw new Error("Failed to save payment method");
-        }
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to add payment method.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement />
-      <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={!stripe || isProcessing}>
-          {isProcessing ? "Processing..." : "Add Payment Method"}
-        </Button>
-      </div>
-    </form>
-  );
-}
 
 export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/auth/session"],
@@ -122,9 +38,7 @@ export default function Settings() {
     enabled: !!user, // Only fetch when user is available
   });
 
-  const { data: paymentMethods = [], isLoading: paymentMethodsLoading } = useQuery<PaymentMethod[]>({
-    queryKey: ["/api/payment-methods"],
-  });
+
 
   const form = useForm({
     resolver: zodResolver(updateUserSettingsSchema),
@@ -187,57 +101,13 @@ export default function Settings() {
     },
   });
 
-  const deletePaymentMethodMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/payment-methods/${id}`);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Payment method removed",
-        description: "Payment method has been removed successfully.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/payment-methods"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Remove failed",
-        description: error.message || "Failed to remove payment method.",
-        variant: "destructive",
-      });
-    },
-  });
 
-  const setupIntentMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/payment-methods/setup-intent");
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      setClientSecret(data.clientSecret);
-      setShowPaymentForm(true);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Setup failed",
-        description: error.message || "Failed to setup payment method form.",
-        variant: "destructive",
-      });
-    },
-  });
 
   const onSubmit = (data: any) => {
     settingsMutation.mutate(data);
   };
 
-  const handleAddPaymentMethod = () => {
-    setupIntentMutation.mutate();
-  };
 
-  const handleDeletePaymentMethod = (id: number) => {
-    if (confirm("Are you sure you want to remove this payment method?")) {
-      deletePaymentMethodMutation.mutate(id);
-    }
-  };
 
   const handleSignOut = () => {
     window.location.href = "/api/logout";
@@ -400,85 +270,7 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Payment Methods & Subscription */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <CreditCard className="mr-2" size={20} />
-              Payment Methods & Subscription
-            </CardTitle>
-            <CardDescription>
-              Adding a payment method automatically starts your monthly subscription
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Current Payment Methods */}
-            <div className="space-y-4 mb-6">
-              {paymentMethodsLoading ? (
-                <Skeleton className="h-16 w-full" />
-              ) : paymentMethods.length > 0 ? (
-                paymentMethods.map((method) => (
-                  <div key={method.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                        <CreditCard className="text-primary" size={20} />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {method.brand?.charAt(0).toUpperCase() + method.brand?.slice(1)} ending in {method.last4}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Expires {method.expiryMonth}/{method.expiryYear}
-                          {method.isDefault && <Badge className="ml-2" variant="secondary">Default</Badge>}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeletePaymentMethod(method.id)}
-                      disabled={deletePaymentMethodMutation.isPending}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center py-4">No payment methods added yet</p>
-              )}
-            </div>
 
-            {/* Add Payment Method */}
-            {showPaymentForm && clientSecret ? (
-              <Elements stripe={stripePromise} options={{ clientSecret }}>
-                <PaymentMethodForm onClose={() => setShowPaymentForm(false)} />
-              </Elements>
-            ) : (
-              <Button 
-                onClick={handleAddPaymentMethod}
-                disabled={setupIntentMutation.isPending}
-                variant="outline"
-                className="w-full p-4 border-2 border-dashed border-gray-300 hover:border-primary hover:bg-blue-50"
-              >
-                <Plus className="mr-2" size={20} />
-                {setupIntentMutation.isPending ? "Setting up..." : "Add Payment Method & Start Subscription"}
-              </Button>
-            )}
-
-            
-            {/* Security Note */}
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start">
-                <Shield className="text-blue-600 mt-0.5 mr-2" size={16} />
-                <div>
-                  <p className="text-sm font-medium text-blue-900">Secure Payment Processing</p>
-                  <p className="text-xs text-blue-700">All payment information is processed securely through Stripe</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* API Settings */}
         <Card>
