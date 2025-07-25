@@ -22,6 +22,8 @@ export default function Landing() {
   const [isLoading, setIsLoading] = useState(false);
   const [showOtpVerification, setShowOtpVerification] = useState(false);
   const [userDataForVerification, setUserDataForVerification] = useState(null);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpEmail, setOtpEmail] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -53,6 +55,7 @@ export default function Landing() {
       email: '',
       code: '',
     },
+    mode: 'onChange',
   });
 
   // Mutation to send OTP
@@ -146,11 +149,9 @@ export default function Landing() {
       // Store user data for later verification
       setUserDataForVerification(data);
       
-      // Reset and setup OTP form
-      otpForm.reset({
-        email: data.email,
-        code: ''
-      });
+      // Set up standalone OTP states
+      setOtpEmail(data.email);
+      setOtpCode('');
       
       // Send OTP to user's email
       await sendOtpMutation.mutateAsync(data.email);
@@ -399,73 +400,67 @@ export default function Landing() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Form {...otpForm}>
-                    <form onSubmit={otpForm.handleSubmit(onVerifyOtp)} className="space-y-4">
-                      <FormField
-                        control={otpForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email Address</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="email" 
-                                placeholder="your@email.com" 
-                                disabled
-                                className="bg-gray-50"
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                  <form onSubmit={onOtpSubmit} className="space-y-4">
+                    <div className="text-sm text-gray-600 mb-4">
+                      Please enter the 6-digit verification code sent to your email:
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Email Address
+                      </label>
+                      <Input 
+                        type="email" 
+                        placeholder="your@email.com" 
+                        disabled
+                        className="bg-gray-50 mt-2"
+                        value={otpEmail}
                       />
+                    </div>
 
-                      <FormField
-                        control={otpForm.control}
-                        name="code"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Verification Code</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="text" 
-                                placeholder="Enter 6-digit code"
-                                maxLength={6}
-                                className="text-center text-lg font-mono tracking-widest"
-                                value={field.value}
-                                onChange={field.onChange}
-                                onBlur={field.onBlur}
-                                name={field.name}
-                                autoFocus
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                    <div>
+                      <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Verification Code  
+                      </label>
+                      <Input 
+                        type="text" 
+                        placeholder="Enter 6-digit code"
+                        maxLength={6}
+                        className="text-center text-lg font-mono tracking-widest mt-2"
+                        value={otpCode}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, ''); // Only allow digits
+                          console.log('Standalone code input changed to:', value);
+                          setOtpCode(value);
+                        }}
+                        name="standalone-verification-code"
+                        id="standalone-verification-code"  
+                        autoFocus
+                        autoComplete="off"
                       />
+                    </div>
 
-                      <div className="text-xs text-gray-600 flex items-start">
-                        <Shield className="mr-1 mt-0.5" size={12} />
-                        Code expires in 10 minutes for security
-                      </div>
+                    <div className="text-xs text-gray-600 flex items-start">
+                      <Shield className="mr-1 mt-0.5" size={12} />
+                      Code expires in 10 minutes for security
+                    </div>
 
-                      <Button 
-                        type="submit" 
-                        className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-blue-700 hover:to-blue-700"
-                        disabled={isLoading || verifyOtpMutation.isPending}
-                      >
-                        {isLoading || verifyOtpMutation.isPending ? "Verifying..." : "Verify & Create Account"}
-                      </Button>
-                    </form>
-                  </Form>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-blue-700 hover:to-blue-700"
+                      disabled={isLoading || verifyOtpMutation.isPending || otpCode.length !== 6}
+                    >
+                      {isLoading || verifyOtpMutation.isPending ? "Verifying..." : "Verify & Create Account"}
+                    </Button>
+                  </form>
 
                   <div className="mt-6 text-center">
                     <button 
                       onClick={() => {
                         setShowOtpVerification(false);
                         setUserDataForVerification(null);
-                        otpForm.reset();
+                        setOtpCode('');
+                        setOtpEmail('');
                       }}
                       className="text-primary hover:text-blue-600 font-medium"
                     >
