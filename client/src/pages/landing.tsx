@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, verifyOtpSchema } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ChartLine, Shield, Info } from "lucide-react";
+import { ChartLine, Shield, Info, Mail } from "lucide-react";
 import { z } from "zod";
 
 const signInSchema = z.object({
@@ -20,6 +20,8 @@ const signInSchema = z.object({
 
 export default function Landing() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showOtpVerification, setShowOtpVerification] = useState(false);
+  const [userDataForVerification, setUserDataForVerification] = useState(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -33,7 +35,7 @@ export default function Landing() {
       confirmPassword: '',
       geminiApiKey: '',
       geminiApiSecret: '',
-      initialFunds: '10000',
+      initialFunds: '500',
     },
   });
 
@@ -42,6 +44,56 @@ export default function Landing() {
     defaultValues: {
       email: '',
       password: '',
+    },
+  });
+
+  const otpForm = useForm({
+    resolver: zodResolver(verifyOtpSchema),
+    defaultValues: {
+      email: '',
+      code: '',
+    },
+  });
+
+  // Mutation to send OTP
+  const sendOtpMutation = useMutation({
+    mutationFn: async (email: string) => {
+      await apiRequest("POST", "/api/send-otp", { email });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Verification code sent!",
+        description: "Please check your email for the 6-digit verification code.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to send verification code",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation to verify OTP and complete registration
+  const verifyOtpMutation = useMutation({
+    mutationFn: async (data: { email: string; code: string; userData: any }) => {
+      await apiRequest("POST", "/api/verify-otp", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account created successfully!",
+        description: "Welcome to CryptoInvest Pro. Your account is now ready.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      window.location.reload();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Verification failed",
+        description: error.message || "Invalid verification code. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -87,10 +139,34 @@ export default function Landing() {
     },
   });
 
+  // Updated onSubmit for two-step verification
   const onSubmit = async (data: any) => {
     setIsLoading(true);
     try {
-      setupMutation.mutate(data);
+      // Store user data for later verification
+      setUserDataForVerification(data);
+      otpForm.setValue('email', data.email);
+      
+      // Send OTP to user's email
+      await sendOtpMutation.mutateAsync(data.email);
+      
+      // Show OTP verification screen
+      setShowOtpVerification(true);
+    } catch (error) {
+      console.error('Failed to send OTP:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle OTP verification
+  const onVerifyOtp = async (otpData: { email: string; code: string }) => {
+    setIsLoading(true);
+    try {
+      await verifyOtpMutation.mutateAsync({
+        ...otpData,
+        userData: userDataForVerification
+      });
     } finally {
       setIsLoading(false);
     }
@@ -128,12 +204,13 @@ export default function Landing() {
           </TabsList>
 
           <TabsContent value="signup" className="space-y-4">
-            <Card className="shadow-lg">
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Create Account</CardTitle>
-                <CardDescription>Start your intelligent crypto investment journey</CardDescription>
-              </CardHeader>
-              <CardContent>
+            {!showOtpVerification ? (
+              <Card className="shadow-lg">
+                <CardHeader className="text-center">
+                  <CardTitle className="text-2xl">Create Account</CardTitle>
+                  <CardDescription>Start your intelligent crypto investment journey</CardDescription>
+                </CardHeader>
+                <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -288,9 +365,9 @@ export default function Landing() {
                     <Button 
                       type="submit" 
                       className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-blue-700 hover:to-blue-700"
-                      disabled={isLoading || setupMutation.isPending}
+                      disabled={isLoading || sendOtpMutation.isPending}
                     >
-                      {isLoading || setupMutation.isPending ? "Creating Account..." : "Create Account & Validate Credentials"}
+                      {isLoading || sendOtpMutation.isPending ? "Sending Verification Code..." : "Send Verification Code"}
                     </Button>
                   </form>
                 </Form>
@@ -305,6 +382,90 @@ export default function Landing() {
                 </div>
               </CardContent>
             </Card>
+            ) : (
+              <Card className="shadow-lg">
+                <CardHeader className="text-center">
+                  <CardTitle className="text-2xl flex items-center justify-center">
+                    <Mail className="mr-2" size={24} />
+                    Verify Your Email
+                  </CardTitle>
+                  <CardDescription>
+                    We've sent a 6-digit verification code to your email address
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Form {...otpForm}>
+                    <form onSubmit={otpForm.handleSubmit(onVerifyOtp)} className="space-y-4">
+                      <FormField
+                        control={otpForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email Address</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="email" 
+                                placeholder="your@email.com" 
+                                disabled
+                                className="bg-gray-50"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={otpForm.control}
+                        name="code"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Verification Code</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="text" 
+                                placeholder="Enter 6-digit code"
+                                maxLength={6}
+                                className="text-center text-lg font-mono tracking-widest"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="text-xs text-gray-600 flex items-start">
+                        <Shield className="mr-1 mt-0.5" size={12} />
+                        Code expires in 10 minutes for security
+                      </div>
+
+                      <Button 
+                        type="submit" 
+                        className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-blue-700 hover:to-blue-700"
+                        disabled={isLoading || verifyOtpMutation.isPending}
+                      >
+                        {isLoading || verifyOtpMutation.isPending ? "Verifying..." : "Verify & Create Account"}
+                      </Button>
+                    </form>
+                  </Form>
+
+                  <div className="mt-6 text-center">
+                    <button 
+                      onClick={() => {
+                        setShowOtpVerification(false);
+                        setUserDataForVerification(null);
+                        otpForm.reset();
+                      }}
+                      className="text-primary hover:text-blue-600 font-medium"
+                    >
+                      ← Back to Registration
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="signin" className="space-y-4">

@@ -68,12 +68,24 @@ export const paymentMethods = pgTable("payment_methods", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const otpCodes = pgTable("otp_codes", {
+  id: serial("id").primaryKey(),
+  email: varchar("email").notNull(),
+  code: varchar("code", { length: 6 }).notNull(),
+  type: varchar("type").notNull(), // signup, login, etc.
+  expiresAt: timestamp("expires_at").notNull(),
+  verified: boolean("verified").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Portfolio = typeof portfolios.$inferSelect;
 export type InsertPortfolio = typeof portfolios.$inferInsert;
 export type PaymentMethod = typeof paymentMethods.$inferSelect;
 export type InsertPaymentMethod = typeof paymentMethods.$inferInsert;
+export type OtpCode = typeof otpCodes.$inferSelect;
+export type InsertOtpCode = typeof otpCodes.$inferInsert;
 
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
@@ -107,5 +119,12 @@ export const updateUserSettingsSchema = createInsertSchema(users).pick({
     .refine(val => val >= 500, "Minimum investment amount is S$500"),
 });
 
+// OTP verification schema
+export const verifyOtpSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  code: z.string().min(6, "OTP code must be 6 digits").max(6, "OTP code must be 6 digits"),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
+export type VerifyOtp = z.infer<typeof verifyOtpSchema>;

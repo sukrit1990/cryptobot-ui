@@ -2,16 +2,19 @@ import {
   users, 
   portfolios, 
   paymentMethods,
+  otpCodes,
   type User, 
   type UpsertUser,
   type Portfolio,
   type InsertPortfolio,
   type PaymentMethod,
   type InsertPaymentMethod,
-  type UpdateUserSettings
+  type UpdateUserSettings,
+  type OtpCode,
+  type InsertOtpCode
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, lt } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -37,6 +40,11 @@ export interface IStorage {
   getPaymentMethodById(id: number): Promise<PaymentMethod | undefined>;
   createPaymentMethod(userId: string, paymentData: Partial<InsertPaymentMethod>): Promise<PaymentMethod>;
   deletePaymentMethod(id: number): Promise<void>;
+  
+  // OTP operations
+  createOtpCode(otpData: InsertOtpCode): Promise<OtpCode>;
+  verifyOtpCode(email: string, code: string, type: string): Promise<OtpCode | undefined>;
+  deleteExpiredOtpCodes(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -210,6 +218,47 @@ export class DatabaseStorage implements IStorage {
     
     // Delete the user record
     await db.delete(users).where(eq(users.id, id));
+  }
+
+  // OTP operations
+  async createOtpCode(otpData: InsertOtpCode): Promise<OtpCode> {
+    const [otpCode] = await db
+      .insert(otpCodes)
+      .values(otpData)
+      .returning();
+    return otpCode;
+  }
+
+  async verifyOtpCode(email: string, code: string, type: string): Promise<OtpCode | undefined> {
+    const [otpCode] = await db
+      .select()
+      .from(otpCodes)
+      .where(
+        and(
+          eq(otpCodes.email, email),
+          eq(otpCodes.code, code),
+          eq(otpCodes.type, type),
+          eq(otpCodes.verified, false)
+        )
+      );
+    
+    if (otpCode && new Date() < otpCode.expiresAt) {
+      // Mark as verified
+      await db
+        .update(otpCodes)
+        .set({ verified: true })
+        .where(eq(otpCodes.id, otpCode.id));
+      
+      return otpCode;
+    }
+    
+    return undefined;
+  }
+
+  async deleteExpiredOtpCodes(): Promise<void> {
+    await db
+      .delete(otpCodes)
+      .where(lt(otpCodes.expiresAt, new Date()));
   }
 }
 

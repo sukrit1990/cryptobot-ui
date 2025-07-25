@@ -23,6 +23,17 @@ Preferred communication style: Simple, everyday language.
 - Integrated automated investing toggle with real CryptoBot API state control
 - Toggle reflects actual account status: "A" = Active, "I" = Inactive with visual indicators
 
+### Email OTP Verification System (July 25, 2025)
+- Implemented secure email OTP verification during sign-up process
+- Added `otpCodes` database table for temporary verification code storage
+- Created `/api/send-otp` endpoint to generate and send 6-digit verification codes
+- Built `/api/verify-otp` endpoint to validate codes and complete user registration
+- Integrated nodemailer for email delivery with development console logging fallback
+- Added comprehensive two-step sign-up UI with verification code input
+- OTP codes expire after 10 minutes for security
+- Updated minimum investment validation to S$500 with user-friendly messaging
+- Enhanced sign-up flow: Step 1 (user details) → Step 2 (email verification) → Account creation
+
 ### Stripe Metered Subscription Implementation (July 25, 2025)
 - Implemented Step 1 of metered subscription flow with card-only payments
 - Created `/api/create-customer` endpoint to handle Stripe customer creation with payment method

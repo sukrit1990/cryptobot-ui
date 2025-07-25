@@ -1,13 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, updateUserSettingsSchema } from "@shared/schema";
+import { insertUserSchema, updateUserSettingsSchema, verifyOtpSchema } from "@shared/schema";
 import { validateGeminiCredentials, getPortfolioData } from "./gemini";
 import Stripe from "stripe";
 import { z } from "zod";
 import session from "express-session";
 import memorystore from "memorystore";
 import fetch from "node-fetch";
+import { sendOtpEmail, generateOtpCode } from "./emailService";
 
 // Initialize Stripe only if secret key is available
 let stripe: Stripe | null = null;
@@ -35,7 +36,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  // Public registration endpoint (no auth required)
+  // Send OTP for email verification
+  app.post('/api/send-otp', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ message: "Valid email address is required" });
+      }
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      // Generate OTP code
+      const otpCode = generateOtpCode();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Save OTP to database
+      await storage.createOtpCode({
+        email,
+        code: otpCode,
+        type: 'signup',
+        expiresAt,
+        verified: false,
+      });
+
+      // Send OTP email
+      await sendOtpEmail(email, otpCode);
+
+      console.log(`OTP sent to ${email}: ${otpCode}`);
+      res.json({ message: "Verification code sent to your email address" });
+    } catch (error: any) {
+      console.error('Send OTP error:', error);
+      res.status(500).json({ message: error.message || "Failed to send verification code" });
+    }
+  });
+
+  // Verify OTP and complete registration
+  app.post('/api/verify-otp', async (req, res) => {
+    try {
+      const otpData = verifyOtpSchema.parse(req.body);
+      const { userData } = req.body;
+
+      if (!userData) {
+        return res.status(400).json({ message: "User registration data is required" });
+      }
+
+      // Verify OTP code
+      const validOtp = await storage.verifyOtpCode(otpData.email, otpData.code, 'signup');
+      if (!validOtp) {
+        return res.status(400).json({ message: "Invalid or expired verification code" });
+      }
+
+      // Parse user data
+      const parsedUserData = insertUserSchema.parse(userData);
+      
+      // Validate minimum investment amount
+      const minInvestment = 500;
+      if (parseFloat(parsedUserData.initialFunds || "0") < minInvestment) {
+        return res.status(400).json({ 
+          message: `Minimum investment amount is S$${minInvestment}` 
+        });
+      }
+
+      // Call external CryptoBot API for account creation
+      const cryptoBotSignup = await fetch('https://cryptobot-api-f15f3256ac28.herokuapp.com/signup', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+        },
+        body: JSON.stringify({
+          gemini_api_key: parsedUserData.geminiApiKey,
+          gemini_api_secret: parsedUserData.geminiApiSecret,
+          fund: parseFloat(parsedUserData.initialFunds || "0"),
+          email: parsedUserData.email
+        })
+      });
+
+      if (!cryptoBotSignup.ok) {
+        const errorData = await cryptoBotSignup.text();
+        console.error('CryptoBot API error:', errorData);
+        return res.status(400).json({ 
+          message: "Failed to create account with CryptoBot API. Please check your credentials." 
+        });
+      }
+
+      // Create user in local database
+      const user = await storage.createUser({
+        email: parsedUserData.email,
+        password: parsedUserData.password,
+        firstName: parsedUserData.firstName,
+        lastName: parsedUserData.lastName,
+        geminiApiKey: parsedUserData.geminiApiKey,
+        geminiApiSecret: parsedUserData.geminiApiSecret,
+        initialFunds: parseFloat(parsedUserData.initialFunds || "0"),
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        investmentActive: false,
+      });
+
+      // Set user in session for auto-login
+      (req.session as any).user = { 
+        id: user.id, 
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName
+      };
+
+      res.json({ 
+        message: "Account created successfully!",
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      });
+    } catch (error: any) {
+      console.error('OTP verification error:', error);
+      res.status(500).json({ message: error.message || "Failed to verify email and create account" });
+    }
+  });
+
+  // Public registration endpoint (no auth required) - Keep for backward compatibility
   app.post('/api/register', async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
