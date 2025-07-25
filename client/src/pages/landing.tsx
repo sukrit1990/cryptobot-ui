@@ -145,7 +145,12 @@ export default function Landing() {
     try {
       // Store user data for later verification
       setUserDataForVerification(data);
-      otpForm.setValue('email', data.email);
+      
+      // Reset and setup OTP form
+      otpForm.reset({
+        email: data.email,
+        code: ''
+      });
       
       // Send OTP to user's email
       await sendOtpMutation.mutateAsync(data.email);
@@ -428,7 +433,11 @@ export default function Landing() {
                                 placeholder="Enter 6-digit code"
                                 maxLength={6}
                                 className="text-center text-lg font-mono tracking-widest"
-                                {...field} 
+                                value={field.value}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                autoFocus
                               />
                             </FormControl>
                             <FormMessage />
