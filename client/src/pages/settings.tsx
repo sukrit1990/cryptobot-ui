@@ -500,7 +500,6 @@ export default function Settings() {
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
                     <h4 className="font-medium text-gray-900">Automated Investing</h4>
-                    <p className="text-sm text-gray-600">AI-powered portfolio management</p>
                     {accountState && (
                       <div className="mt-2 space-y-1">
                         <div className="flex items-center">
@@ -618,6 +617,9 @@ export default function Settings() {
                           )}
                         </div>
                       </FormControl>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Please ensure this amount is available as USD in your Gemini account for automated investing to function properly.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
