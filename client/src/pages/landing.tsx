@@ -225,7 +225,7 @@ export default function Landing() {
             <ChartLine className="text-white text-2xl" size={32} />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">CryptoInvest Pro</h2>
-          <p className="mt-2 text-sm text-gray-600">Intelligent crypto investment platform</p>
+          <p className="mt-2 text-sm text-gray-600">Your strategy. On autopilot.</p>
         </div>
 
         <Tabs defaultValue="signup" className="w-full">
@@ -239,7 +239,7 @@ export default function Landing() {
               <Card className="shadow-lg">
                 <CardHeader className="text-center">
                   <CardTitle className="text-2xl">Create Account</CardTitle>
-                  <CardDescription>Start your intelligent crypto investment journey</CardDescription>
+                  <CardDescription>Start your automated crypto investment journey</CardDescription>
                 </CardHeader>
                 <CardContent>
                 <Form {...form}>
