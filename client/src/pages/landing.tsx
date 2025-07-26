@@ -239,7 +239,7 @@ export default function Landing() {
               <Card className="shadow-lg">
                 <CardHeader className="text-center">
                   <CardTitle className="text-2xl">Create Account</CardTitle>
-                  <CardDescription>Start your automated crypto investment journey</CardDescription>
+                  <CardDescription>Start your automated investment journey</CardDescription>
                 </CardHeader>
                 <CardContent>
                 <Form {...form}>
