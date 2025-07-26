@@ -150,9 +150,97 @@ function SubscriptionForm({ onClose }: { onClose: () => void }) {
   );
 }
 
+// Update Card Form Component  
+function UpdateCardForm({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!stripe || !elements) {
+      return;
+    }
 
+    setIsProcessing(true);
 
+    try {
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) {
+        throw new Error("Card element not found");
+      }
+
+      // Create payment method
+      const { error: methodError, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+      });
+
+      if (methodError) {
+        throw new Error(methodError.message);
+      }
+
+      // Update payment method on backend
+      const response = await apiRequest("POST", "/api/update-payment-method", {
+        paymentMethodId: paymentMethod.id,
+      });
+
+      const data = await response.json();
+      
+      toast({
+        title: "Card updated successfully",
+        description: "Your payment method has been updated.",
+      });
+
+      onSuccess();
+
+    } catch (error: any) {
+      toast({
+        title: "Update failed",
+        description: error.message || "Failed to update payment method.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          New Card Information
+        </label>
+        <div className="p-3 border border-gray-300 rounded-md">
+          <CardElement 
+            options={{
+              style: {
+                base: {
+                  fontSize: '16px',
+                  color: '#424770',
+                  '::placeholder': {
+                    color: '#aab7c4',
+                  },
+                },
+              },
+            }}
+          />
+        </div>
+      </div>
+      
+      <div className="flex justify-end space-x-2">
+        <Button type="button" variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={!stripe || isProcessing}>
+          {isProcessing ? "Updating..." : "Update Card"}
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 export default function Settings() {
   const { toast } = useToast();
@@ -162,6 +250,7 @@ export default function Settings() {
   const [isEditingFunds, setIsEditingFunds] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
+  const [showUpdateCardDialog, setShowUpdateCardDialog] = useState(false);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/auth/session"],
@@ -296,6 +385,28 @@ export default function Settings() {
       toast({
         title: "Password change failed",
         description: error.message || "Failed to change password.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update card mutation
+  const updateCardMutation = useMutation({
+    mutationFn: async (paymentMethodId: string) => {
+      const response = await apiRequest("POST", "/api/update-payment-method", { paymentMethodId });
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Card updated",
+        description: "Your payment method has been updated successfully.",
+      });
+      setShowUpdateCardDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update failed",
+        description: error.message || "Failed to update payment method.",
         variant: "destructive",
       });
     },
@@ -596,14 +707,24 @@ export default function Settings() {
                       <p className="text-sm text-green-700">
                         Subscription ID: {subscriptionStatus.subscriptionId?.slice(-8)}
                       </p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setShowCancelDialog(true)}
-                        className="text-red-600 border-red-200 hover:bg-red-50"
-                      >
-                        Cancel Subscription
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setShowUpdateCardDialog(true)}
+                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        >
+                          Update Card
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setShowCancelDialog(true)}
+                          className="text-red-600 border-red-200 hover:bg-red-50"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -841,6 +962,27 @@ export default function Settings() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Update Card Dialog */}
+      <Elements stripe={stripePromise}>
+        <Dialog open={showUpdateCardDialog} onOpenChange={setShowUpdateCardDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Update Payment Method</DialogTitle>
+              <DialogDescription>
+                Enter your new card information to update your payment method.
+              </DialogDescription>
+            </DialogHeader>
+            <UpdateCardForm 
+              onClose={() => setShowUpdateCardDialog(false)}
+              onSuccess={() => {
+                setShowUpdateCardDialog(false);
+                queryClient.invalidateQueries({ queryKey: ["/api/subscription-status"] });
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </Elements>
 
       {/* Delete Account Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

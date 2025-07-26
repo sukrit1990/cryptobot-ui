@@ -362,6 +362,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update payment method endpoint
+  app.post('/api/update-payment-method', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { paymentMethodId } = req.body;
+      
+      if (!paymentMethodId) {
+        return res.status(400).json({ message: "Payment method ID is required" });
+      }
+
+      // Get current user
+      const user = await storage.getUser(session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!user.stripeCustomerId) {
+        return res.status(400).json({ message: "No Stripe customer found" });
+      }
+
+      // Attach payment method to customer
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: user.stripeCustomerId,
+      });
+
+      // Set as default payment method
+      await stripe.customers.update(user.stripeCustomerId, {
+        invoice_settings: {
+          default_payment_method: paymentMethodId,
+        },
+      });
+
+      // Update subscription if exists
+      if (user.stripeSubscriptionId) {
+        await stripe.subscriptions.update(user.stripeSubscriptionId, {
+          default_payment_method: paymentMethodId,
+        });
+      }
+
+      res.json({ 
+        message: "Payment method updated successfully",
+        paymentMethodId 
+      });
+    } catch (error: any) {
+      console.error("Update payment method error:", error);
+      res.status(500).json({ message: error.message || "Failed to update payment method" });
+    }
+  });
+
   // Sign out endpoint
   app.post('/api/signout', async (req, res) => {
     try {
