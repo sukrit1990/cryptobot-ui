@@ -444,7 +444,7 @@ export default function Settings() {
 
 
   const handleSignOut = () => {
-    window.location.href = "/api/logout";
+    window.location.href = "/api/signout";
   };
 
   if (userLoading) {
