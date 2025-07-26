@@ -19,7 +19,7 @@ import {
 
 function Sidebar({ user }: { user: any }) {
   const handleSignOut = () => {
-    window.location.href = "/api/logout";
+    window.location.href = "/api/signout";
   };
 
   return (
