@@ -321,6 +321,16 @@ export default function Landing() {
                         <Shield className="mr-2" size={16} />
                         Gemini API Credentials
                       </h4>
+                      <p className="text-xs text-blue-700">
+                        Need API credentials? <a 
+                          href="https://support.gemini.com/hc/en-us/articles/360031080191-How-do-I-create-an-API-key" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="underline hover:text-blue-900 font-medium"
+                        >
+                          Learn how to create Gemini API keys →
+                        </a>
+                      </p>
                       
                       <FormField
                         control={form.control}
