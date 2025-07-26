@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 
 function Sidebar({ user }: { user: any }) {
+  const [location] = useLocation();
+  
   const handleSignOut = async () => {
     try {
       await fetch("/api/signout", { method: "POST" });
@@ -46,14 +48,22 @@ function Sidebar({ user }: { user: any }) {
         <nav className="flex-1 px-4 py-6 space-y-2">
           <a 
             href="/"
-            className="nav-item active w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors text-primary bg-blue-50 font-medium"
+            className={`nav-item w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
+              location === "/" 
+                ? "text-primary bg-blue-50 font-medium" 
+                : "text-gray-600 hover:text-primary hover:bg-blue-50"
+            }`}
           >
             <ChartLine className="mr-3" size={18} />
             Dashboard
           </a>
           <a 
             href="/settings"
-            className="nav-item w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors text-gray-600 hover:text-primary hover:bg-blue-50"
+            className={`nav-item w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
+              location === "/settings" 
+                ? "text-primary bg-blue-50 font-medium" 
+                : "text-gray-600 hover:text-primary hover:bg-blue-50"
+            }`}
           >
             <SettingsIcon className="mr-3" size={18} />
             Settings
