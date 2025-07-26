@@ -80,11 +80,6 @@ function Sidebar({ user }: { user: any }) {
 }
 
 function AuthenticatedApp({ user }: { user: any }) {
-  // Check if user needs to complete setup
-  if (!user.geminiApiKey || !user.initialFunds) {
-    return <Landing />;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar user={user} />
@@ -118,14 +113,9 @@ function Router() {
   return (
     <Switch>
       {!isAuthenticated ? (
-        <>
-          <Route path="/" component={Landing} />
-          <Route component={Landing} />
-        </>
+        <Route component={Landing} />
       ) : (
-        <>
-          <Route path="*" component={() => <AuthenticatedApp user={user} />} />
-        </>
+        <Route path="*" component={() => <AuthenticatedApp user={user} />} />
       )}
     </Switch>
   );

@@ -10,6 +10,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### UI/UX Fixes (July 26, 2025)
+- Fixed duplicate landing page rendering issue in App.tsx routing
+- Removed redundant Landing component calls from AuthenticatedApp and Router
+- Fixed sign-out button 404 error by correcting endpoint from /api/logout to /api/signout
+- Streamlined routing logic for cleaner user experience
+
 ### Comprehensive Dashboard & Payment Integration (July 24, 2025)
 - Added tabbed dashboard interface with Portfolio Performance and Realized Profit tabs
 - Integrated CryptoBot profit API (/profit) for realized trading profit visualization
