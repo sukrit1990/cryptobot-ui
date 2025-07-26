@@ -71,11 +71,13 @@ export default function Dashboard() {
   };
 
   // Format data for the chart
-  const chartData = historyData?.map((point: any) => ({
-    date: new Date(point.timestamp || point.date).toLocaleDateString(),
-    value: point.value,
-    timestamp: point.timestamp || point.date
-  })) || [];
+  const chartData = Array.isArray(historyData) && historyData.length > 0 
+    ? historyData.map((point: any) => ({
+        date: new Date(point.timestamp || point.date).toLocaleDateString(),
+        value: point.current || point.value || 0,
+        timestamp: point.timestamp || point.date
+      })) 
+    : [];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-SG', {
@@ -277,7 +279,8 @@ export default function Dashboard() {
                 <div className="text-center">
                   <BarChart3 className="h-16 w-16 mx-auto mb-4 text-gray-300" />
                   <p className="text-gray-500 text-lg font-medium">No portfolio data available</p>
-                  <p className="text-gray-400 text-sm mt-2">Your investment history will appear here once data is available</p>
+                  <p className="text-gray-400 text-sm mt-2">Portfolio data will appear once your automated investment starts generating history</p>
+                  <p className="text-gray-400 text-xs mt-1">Enable automated investing in Settings to begin tracking performance</p>
                 </div>
               </div>
             )}
