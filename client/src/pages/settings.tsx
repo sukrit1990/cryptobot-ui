@@ -618,7 +618,7 @@ export default function Settings() {
                         </div>
                       </FormControl>
                       <p className="text-xs text-gray-500 mt-2">
-                        Please ensure this amount is available as USD in your Gemini account for automated investing to function properly.
+                        Please ensure this amount is available as SGD in your Gemini account for automated investing to function properly.
                       </p>
                       <FormMessage />
                     </FormItem>
