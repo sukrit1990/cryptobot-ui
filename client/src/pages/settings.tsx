@@ -161,6 +161,7 @@ export default function Settings() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isEditingFunds, setIsEditingFunds] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
 
   const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/auth/session"],
@@ -273,6 +274,28 @@ export default function Settings() {
       toast({
         title: "Cancellation failed",
         description: error.message || "Failed to cancel subscription.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Change password mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+      const response = await apiRequest("POST", "/api/change-password", data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password changed",
+        description: "Your password has been updated successfully.",
+      });
+      setShowChangePasswordDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Password change failed",
+        description: error.message || "Failed to change password.",
         variant: "destructive",
       });
     },
@@ -695,19 +718,10 @@ export default function Settings() {
               <Button 
                 variant="outline" 
                 className="w-full"
-                disabled
+                onClick={() => setShowChangePasswordDialog(true)}
               >
                 <Lock className="mr-2" size={16} />
                 Change Password
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="w-full"
-                disabled
-              >
-                <Shield className="mr-2" size={16} />
-                Two-Factor Authentication
               </Button>
               
               <Button 
@@ -754,6 +768,95 @@ export default function Settings() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Change Password Dialog */}
+      <Dialog open={showChangePasswordDialog} onOpenChange={setShowChangePasswordDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Enter your current password and choose a new password.
+            </DialogDescription>
+          </DialogHeader>
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target as HTMLFormElement);
+              const currentPassword = formData.get('currentPassword') as string;
+              const newPassword = formData.get('newPassword') as string;
+              const confirmPassword = formData.get('confirmPassword') as string;
+              
+              if (newPassword !== confirmPassword) {
+                toast({
+                  title: "Passwords don't match",
+                  description: "Please make sure both new password fields match.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              
+              if (newPassword.length < 6) {
+                toast({
+                  title: "Password too short",
+                  description: "Password must be at least 6 characters long.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              
+              changePasswordMutation.mutate({ currentPassword, newPassword, confirmPassword });
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Current Password
+              </label>
+              <Input
+                name="currentPassword"
+                type="password"
+                required
+                placeholder="Enter current password"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Password
+              </label>
+              <Input
+                name="newPassword"
+                type="password"
+                required
+                placeholder="Enter new password"
+                minLength={6}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm New Password
+              </label>
+              <Input
+                name="confirmPassword"
+                type="password"
+                required
+                placeholder="Confirm new password"
+                minLength={6}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setShowChangePasswordDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={changePasswordMutation.isPending}>
+                {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Account Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

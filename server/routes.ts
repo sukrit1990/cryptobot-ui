@@ -319,6 +319,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Change password endpoint
+  app.post('/api/change-password', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { currentPassword, newPassword, confirmPassword } = req.body;
+      
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        return res.status(400).json({ message: "All password fields are required" });
+      }
+      
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ message: "New passwords don't match" });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+      
+      // Get current user
+      const user = await storage.getUser(session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Verify current password
+      if (user.password !== currentPassword) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Update password
+      await storage.updateUser(session.userId, { password: newPassword });
+      
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
   // Sign out endpoint
   app.post('/api/signout', async (req, res) => {
     try {
