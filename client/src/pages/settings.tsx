@@ -552,23 +552,7 @@ export default function Settings() {
                 </div>
               )}
               
-              <Button 
-                variant="outline" 
-                className="w-full"
-                disabled
-              >
-                <RefreshCw className="mr-2" size={16} />
-                Test API Connection
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="w-full text-red-600 border-red-300 hover:border-red-500 hover:bg-red-50"
-                disabled
-              >
-                <Key className="mr-2" size={16} />
-                Update API Credentials
-              </Button>
+
             </div>
           </CardContent>
         </Card>
