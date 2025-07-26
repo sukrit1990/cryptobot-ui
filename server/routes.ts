@@ -386,6 +386,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No Stripe customer found" });
       }
 
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe not initialized" });
+      }
+
       // Attach payment method to customer
       await stripe.paymentMethods.attach(paymentMethodId, {
         customer: user.stripeCustomerId,
