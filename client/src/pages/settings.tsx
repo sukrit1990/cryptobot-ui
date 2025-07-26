@@ -443,8 +443,14 @@ export default function Settings() {
 
 
 
-  const handleSignOut = () => {
-    window.location.href = "/api/signout";
+  const handleSignOut = async () => {
+    try {
+      await fetch("/api/signout", { method: "POST" });
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Sign out failed:", error);
+      window.location.href = "/";
+    }
   };
 
   if (userLoading) {
