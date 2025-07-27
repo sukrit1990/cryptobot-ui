@@ -1308,15 +1308,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Get customer to check for default payment method
+      const customer = await stripe.customers.retrieve(user.stripeCustomerId);
+      
       // Create new metered subscription with 30-day trial
-      const subscription = await stripe.subscriptions.create({
+      const subscriptionParams: any = {
         customer: user.stripeCustomerId,
         items: [{
           price: 'price_1RoRk1AU0aPHWB2SEy3NtXI8', // Metered price ID
         }],
         trial_period_days: 30, // 30-day free trial
         expand: ['latest_invoice.payment_intent'],
-      });
+      };
+
+      // Set default payment method if customer has one
+      if (customer && !customer.deleted && customer.invoice_settings?.default_payment_method) {
+        subscriptionParams.default_payment_method = customer.invoice_settings.default_payment_method;
+      }
+
+      const subscription = await stripe.subscriptions.create(subscriptionParams);
 
       const subscriptionItemId = subscription.items.data[0].id;
 
