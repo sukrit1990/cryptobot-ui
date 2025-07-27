@@ -10,11 +10,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Password Encryption Implementation (July 27, 2025)
+- Implemented secure password storage using bcrypt with 12 salt rounds
+- Added password hashing utility functions in server/auth.ts
+- Updated user creation and authentication to use encrypted passwords
+- Modified signin endpoint to use verifyUserPassword method with bcrypt comparison
+- Enhanced password change functionality with encrypted verification
+- Updated storage layer methods (createUser, upsertUser, updateUser) to automatically hash passwords
+- Added verifyUserPassword method to storage interface for secure authentication
+
 ### UI/UX Fixes (July 26, 2025)
 - Fixed duplicate landing page rendering issue in App.tsx routing
 - Removed redundant Landing component calls from AuthenticatedApp and Router
 - Fixed sign-out button 404 error by correcting endpoint from /api/logout to /api/signout
 - Streamlined routing logic for cleaner user experience
+- Fixed sidebar tab highlighting issue using useLocation hook for dynamic styling
+- Updated investment controls section to remove AI references and add SGD fund guidance
 
 ### Comprehensive Dashboard & Payment Integration (July 24, 2025)
 - Added tabbed dashboard interface with Portfolio Performance and Realized Profit tabs

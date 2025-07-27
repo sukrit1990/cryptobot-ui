@@ -256,14 +256,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
+      // Verify user credentials with encrypted password
+      const user = await storage.verifyUserPassword(email, password);
       if (!user) {
-        return res.status(400).json({ message: "Invalid email or password" });
-      }
-
-      // Verify password (in a real app, you'd hash and compare)
-      if (user.password !== password) {
         return res.status(400).json({ message: "Invalid email or password" });
       }
 
@@ -347,12 +342,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Verify current password
-      if (user.password !== currentPassword) {
+      // Verify current password using encrypted verification
+      const isCurrentPasswordValid = await storage.verifyUserPassword(user.email!, currentPassword);
+      if (!isCurrentPasswordValid) {
         return res.status(400).json({ message: "Current password is incorrect" });
       }
       
-      // Update password
+      // Update password (will be automatically hashed in storage layer)
       await storage.updateUser(session.userId, { password: newPassword });
       
       res.json({ message: "Password changed successfully" });

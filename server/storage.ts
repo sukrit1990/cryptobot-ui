@@ -15,6 +15,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, lt } from "drizzle-orm";
+import { hashPassword, verifyPassword } from "./auth";
 
 // Interface for storage operations
 export interface IStorage {
@@ -29,6 +30,7 @@ export interface IStorage {
   getAllUsersWithSubscriptions(): Promise<User[]>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
   deleteUser(id: string): Promise<void>;
+  verifyUserPassword(email: string, password: string): Promise<User | undefined>;
   
   // Portfolio operations
   getPortfolioByUserId(userId: string): Promise<Portfolio | undefined>;
@@ -61,22 +63,38 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(userData: UpsertUser): Promise<User> {
     // Remove the id from userData if present, let DB generate it
-    const { id, ...userDataWithoutId } = userData as any;
+    const { id, password, ...userDataWithoutId } = userData as any;
+    
+    // Hash password if provided
+    const hashedPassword = password ? await hashPassword(password) : undefined;
+    
     const [user] = await db
       .insert(users)
-      .values(userDataWithoutId)
+      .values({
+        ...userDataWithoutId,
+        ...(hashedPassword && { password: hashedPassword })
+      })
       .returning();
     return user;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    const { password, ...userDataWithoutPassword } = userData as any;
+    
+    // Hash password if provided
+    const hashedPassword = password ? await hashPassword(password) : undefined;
+    
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values({
+        ...userDataWithoutPassword,
+        ...(hashedPassword && { password: hashedPassword })
+      })
       .onConflictDoUpdate({
         target: users.id,
         set: {
-          ...userData,
+          ...userDataWithoutPassword,
+          ...(hashedPassword && { password: hashedPassword }),
           updatedAt: new Date(),
         },
       })
@@ -143,6 +161,23 @@ export class DatabaseStorage implements IStorage {
     const allUsers = await db.select().from(users);
     // Filter users that have active Stripe subscriptions
     return allUsers.filter(user => user.stripeSubscriptionId && user.stripeSubscriptionId.trim() !== '');
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    // If password is being updated, hash it
+    const { password, ...otherUpdates } = updates as any;
+    const hashedPassword = password ? await hashPassword(password) : undefined;
+    
+    const [user] = await db
+      .update(users)
+      .set({
+        ...otherUpdates,
+        ...(hashedPassword && { password: hashedPassword }),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 
   // Portfolio operations
@@ -220,6 +255,16 @@ export class DatabaseStorage implements IStorage {
     
     // Delete the user record
     await db.delete(users).where(eq(users.id, id));
+  }
+
+  async verifyUserPassword(email: string, password: string): Promise<User | undefined> {
+    const user = await this.getUserByEmail(email);
+    if (!user || !user.password) {
+      return undefined;
+    }
+    
+    const isValid = await verifyPassword(password, user.password);
+    return isValid ? user : undefined;
   }
 
   // OTP operations
