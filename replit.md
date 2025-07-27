@@ -19,6 +19,14 @@ Preferred communication style: Simple, everyday language.
 - Updated storage layer methods (createUser, upsertUser, updateUser) to automatically hash passwords
 - Added verifyUserPassword method to storage interface for secure authentication
 
+### Email Uniqueness Validation (July 27, 2025)
+- Implemented email uniqueness validation to prevent duplicate user registrations
+- Added database-level unique constraint on email field in users table
+- Added application-level validation in both /api/send-otp and /api/verify-otp endpoints
+- Added email uniqueness check in legacy /api/register endpoint for backward compatibility
+- Enhanced error handling with proper database constraint violation messages
+- Users now receive clear feedback when attempting to register with existing email addresses
+
 ### UI/UX Fixes (July 26, 2025)
 - Fixed duplicate landing page rendering issue in App.tsx routing
 - Removed redundant Landing component calls from AuthenticatedApp and Router

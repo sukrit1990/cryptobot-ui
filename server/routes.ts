@@ -94,6 +94,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Parse user data
       const parsedUserData = insertUserSchema.parse(userData);
       
+      // Double-check email uniqueness before creating user
+      const existingUser = await storage.getUserByEmail(parsedUserData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "An account with this email already exists. Please sign in instead." });
+      }
+      
       // Validate minimum investment amount
       const minInvestment = 500;
       if (parseFloat(parsedUserData.initialFunds || "0") < minInvestment) {
@@ -134,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName: parsedUserData.lastName,
         geminiApiKey: parsedUserData.geminiApiKey,
         geminiApiSecret: parsedUserData.geminiApiSecret,
-        initialFunds: parseFloat(parsedUserData.initialFunds || "0"),
+        initialFunds: parseFloat(parsedUserData.initialFunds || "0").toString(),
         stripeCustomerId: null,
         stripeSubscriptionId: null,
         investmentActive: false,
@@ -155,6 +161,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('OTP verification error:', error);
+      
+      // Handle database constraint violations for duplicate email
+      if (error.message && error.message.includes('duplicate key value violates unique constraint')) {
+        return res.status(400).json({ message: "An account with this email already exists. Please sign in instead." });
+      }
+      
       res.status(500).json({ message: error.message || "Failed to verify email and create account" });
     }
   });
@@ -163,6 +175,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/register', async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
+      
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "An account with this email already exists. Please sign in instead." });
+      }
       
       console.log('=== Registration Request Received ===');
       console.log('Request body:', JSON.stringify(req.body, null, 2));
@@ -178,12 +196,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('API Secret length:', (userData.geminiApiSecret || '').length);
       console.log('=============================');
       console.log('=====================================');
-      
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(userData.email);
-      if (existingUser) {
-        return res.status(400).json({ message: "User with this email already exists" });
-      }
       
       // Validate minimum investment amount
       const minInvestment = 500;
