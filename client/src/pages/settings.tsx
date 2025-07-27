@@ -268,6 +268,12 @@ export default function Settings() {
     enabled: !!user,
   });
 
+  // Fetch payment method details
+  const { data: paymentMethod } = useQuery({
+    queryKey: ["/api/payment-method"],
+    enabled: !!user && !!subscriptionStatus?.hasSubscription,
+  });
+
   // Fetch current invested amount from CryptoBot API
   const { data: fundData, isLoading: fundLoading } = useQuery({
     queryKey: ["/api/account/fund"],
@@ -701,9 +707,11 @@ export default function Settings() {
                       <CheckCircle className="h-5 w-5 text-green-600" />
                       <div>
                         <p className="font-medium text-green-900">Active Subscription</p>
-                        <p className="text-sm text-green-700">
-                          Metered billing enabled - you're charged based on trading profits
-                        </p>
+                        {paymentMethod?.hasPaymentMethod && paymentMethod.card && (
+                          <p className="text-sm text-green-700">
+                            {paymentMethod.card.brand.toUpperCase()} card ending in {paymentMethod.card.last4}
+                          </p>
+                        )}
                         {subscriptionStatus?.trialEndsAt && (
                           <p className="text-sm text-blue-700 mt-1">
                             Free trial until {new Date(subscriptionStatus.trialEndsAt * 1000).toLocaleDateString()}
@@ -712,9 +720,6 @@ export default function Settings() {
                       </div>
                     </div>
                     <div className="text-right space-y-2">
-                      <p className="text-sm text-green-700">
-                        Subscription ID: {subscriptionStatus.subscriptionId?.slice(-8)}
-                      </p>
                       <div className="flex gap-2">
                         <Button 
                           variant="outline" 

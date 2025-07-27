@@ -1536,6 +1536,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get payment method details
+  app.get('/api/payment-method', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      
+      if (!user?.stripeCustomerId) {
+        return res.status(404).json({ message: 'No customer found' });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      // Get customer with payment methods
+      const customer = await stripe.customers.retrieve(user.stripeCustomerId, {
+        expand: ['default_source', 'invoice_settings.default_payment_method']
+      });
+
+      if (!customer || customer.deleted) {
+        return res.status(404).json({ message: 'Customer not found' });
+      }
+
+      // Get the default payment method
+      let paymentMethod = null;
+      if (customer.invoice_settings?.default_payment_method) {
+        paymentMethod = await stripe.paymentMethods.retrieve(
+          customer.invoice_settings.default_payment_method as string
+        );
+      }
+
+      if (paymentMethod && paymentMethod.card) {
+        res.json({
+          hasPaymentMethod: true,
+          card: {
+            brand: paymentMethod.card.brand,
+            last4: paymentMethod.card.last4,
+            expMonth: paymentMethod.card.exp_month,
+            expYear: paymentMethod.card.exp_year
+          }
+        });
+      } else {
+        res.json({
+          hasPaymentMethod: false
+        });
+      }
+
+    } catch (error: any) {
+      console.error('Error fetching payment method:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch payment method',
+        error: error.message 
+      });
+    }
+  });
+
   // Schedule daily usage reporting (runs at 2 AM daily)
   const scheduleInterval = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
   
