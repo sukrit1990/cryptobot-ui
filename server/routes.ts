@@ -326,6 +326,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send password reset OTP
+  app.post('/api/forgot-password', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ message: "Valid email address is required" });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // For security, don't reveal if email exists or not
+        return res.json({ message: "If an account with this email exists, you will receive a password reset code." });
+      }
+
+      // Generate OTP code
+      const otpCode = generateOtpCode();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Save OTP to database
+      await storage.createOtpCode({
+        email,
+        code: otpCode,
+        type: 'password-reset',
+        expiresAt,
+        verified: false,
+      });
+
+      // Send OTP email
+      await sendOtpEmail(email, otpCode);
+
+      console.log(`Password reset OTP sent to ${email}: ${otpCode}`);
+      res.json({ message: "If an account with this email exists, you will receive a password reset code." });
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ message: "Failed to send password reset code" });
+    }
+  });
+
+  // Reset password with OTP
+  app.post('/api/reset-password', async (req, res) => {
+    try {
+      const { email, code, newPassword, confirmPassword } = req.body;
+      
+      if (!email || !code || !newPassword || !confirmPassword) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ message: "Passwords don't match" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+
+      // Verify OTP code
+      const validOtp = await storage.verifyOtpCode(email, code, 'password-reset');
+      if (!validOtp) {
+        return res.status(400).json({ message: "Invalid or expired reset code" });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(400).json({ message: "User not found" });
+      }
+
+      // Update password (will be automatically hashed)
+      await storage.updateUser(user.id, { password: newPassword });
+
+      res.json({ message: "Password reset successfully. You can now sign in with your new password." });
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
   // Change password endpoint
   app.post('/api/change-password', async (req, res) => {
     try {

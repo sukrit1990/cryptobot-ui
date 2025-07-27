@@ -126,6 +126,24 @@ export const verifyOtpSchema = z.object({
   code: z.string().min(6, "OTP code must be 6 digits").max(6, "OTP code must be 6 digits"),
 });
 
+// Forgot password schema
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+// Reset password schema
+export const resetPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  code: z.string().min(6, "Reset code must be 6 digits").max(6, "Reset code must be 6 digits"),
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Please confirm your password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
 export type VerifyOtp = z.infer<typeof verifyOtpSchema>;
+export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
+export type ResetPassword = z.infer<typeof resetPasswordSchema>;
