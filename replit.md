@@ -35,6 +35,14 @@ Preferred communication style: Simple, everyday language.
 - Fixed sidebar tab highlighting issue using useLocation hook for dynamic styling
 - Updated investment controls section to remove AI references and add SGD fund guidance
 
+### Subscription Display Enhancement (July 27, 2025)
+- Removed subscription ID display from active subscription section in settings
+- Removed "Metered billing enabled" text for cleaner user interface
+- Added new API endpoint to fetch payment method details from Stripe subscriptions
+- Updated subscription display to show card brand and last 4 digits (e.g., "VISA card ending in 1234")
+- Fixed payment method retrieval using subscription-based approach instead of customer-based
+- Enhanced user experience with more relevant payment information display
+
 ### Comprehensive Dashboard & Payment Integration (July 24, 2025)
 - Added tabbed dashboard interface with Portfolio Performance and Realized Profit tabs
 - Integrated CryptoBot profit API (/profit) for realized trading profit visualization

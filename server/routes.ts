@@ -1546,30 +1546,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.getUser(session.userId);
       
-      if (!user?.stripeCustomerId) {
-        return res.status(404).json({ message: 'No customer found' });
+      if (!user?.stripeSubscriptionId) {
+        return res.status(404).json({ message: 'No active subscription found' });
       }
 
       if (!stripe) {
         return res.status(500).json({ message: "Stripe is not configured" });
       }
 
-      // Get customer with payment methods
-      const customer = await stripe.customers.retrieve(user.stripeCustomerId, {
-        expand: ['default_source', 'invoice_settings.default_payment_method']
-      });
+      // Step 1: Retrieve the subscription
+      const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
 
-      if (!customer || customer.deleted) {
-        return res.status(404).json({ message: 'Customer not found' });
+      // Step 2: Get the default payment method from subscription
+      const paymentMethodId = subscription.default_payment_method;
+
+      if (!paymentMethodId) {
+        return res.json({
+          hasPaymentMethod: false
+        });
       }
 
-      // Get the default payment method
-      let paymentMethod = null;
-      if (customer.invoice_settings?.default_payment_method) {
-        paymentMethod = await stripe.paymentMethods.retrieve(
-          customer.invoice_settings.default_payment_method as string
-        );
-      }
+      // Step 3: Retrieve the payment method details
+      const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId as string);
 
       if (paymentMethod && paymentMethod.card) {
         res.json({
