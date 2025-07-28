@@ -76,6 +76,11 @@ Preferred communication style: Simple, everyday language.
 - Updated minimum investment validation to S$500 with user-friendly messaging
 - Enhanced sign-up flow: Step 1 (user details) → Step 2 (email verification) → Account creation
 
+### Stripe Price ID Update (July 28, 2025)
+- Updated Stripe price ID from price_1RoRk1AU0aPHWB2SEy3NtXI8 to price_1RpghZAU0aPHWB2Sw5glpgdn
+- Applied new price ID to subscription creation endpoint (/api/create-subscription)
+- Updated project documentation to reflect the new metered billing price configuration
+
 ### Stripe Meter Events API Migration (July 28, 2025)
 - Migrated from Stripe usage records API to modern meter events API for billing
 - Updated `/api/report-usage` endpoint to use `stripe.billing.meterEvents.create()`
@@ -88,7 +93,7 @@ Preferred communication style: Simple, everyday language.
 ### Stripe Metered Subscription Implementation (July 25, 2025)
 - Implemented Step 1 of metered subscription flow with card-only payments
 - Created `/api/create-customer` endpoint to handle Stripe customer creation with payment method
-- Built `/api/create-subscription` endpoint for metered subscription using price_1RoRk1AU0aPHWB2SEy3NtXI8
+- Built `/api/create-subscription` endpoint for metered subscription using price_1RpghZAU0aPHWB2Sw5glpgdn
 - Added `/api/report-usage` endpoint for metered billing usage tracking (now using meter events API)
 - Setup `/api/setup-payment-method` for secure card payment method collection
 - Removed previous payment section from settings page as requested
