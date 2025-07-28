@@ -1422,7 +1422,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Step 3: Report Usage for Metered Billing
+  // Step 3: Report Usage for Metered Billing using Meter Events API
   app.post('/api/report-usage', async (req, res) => {
     try {
       const session = req.session as any;
@@ -1440,25 +1440,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.getUser(session.userId);
-      if (!user || !user.stripeSubscriptionId) {
-        return res.status(400).json({ message: "Active subscription required" });
+      if (!user || !user.stripeCustomerId) {
+        return res.status(400).json({ message: "Stripe customer required" });
       }
 
-      // Get subscription to find the subscription item ID
-      const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-      const subscriptionItemId = subscription.items.data[0].id;
-
-      // Create usage record
-      const usageRecord = await stripe.usageRecords.create(subscriptionItemId, {
-        quantity: usage_quantity,
+      // Create meter event using the new API
+      const meterEvent = await stripe.billing.meterEvents.create({
+        event_name: 'realized_profit',
         timestamp: Math.floor(Date.now() / 1000),
-        action: 'set', // or 'increment'
+        payload: {
+          stripe_customer_id: user.stripeCustomerId,
+          value: usage_quantity.toString()
+        }
       });
 
-      res.json({ usage_record_id: usageRecord.id });
+      res.json({ meter_event_id: (meterEvent as any).id });
     } catch (error: any) {
-      console.error("Error reporting usage:", error);
-      res.status(500).json({ message: "Failed to report usage: " + error.message });
+      console.error("Error reporting meter event:", error);
+      res.status(500).json({ message: "Failed to report meter event: " + error.message });
     }
   });
 
@@ -1506,6 +1505,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           console.log(`Reporting usage for ${user.email}: ${usageQuantity}`);
 
+          // Ensure we have a Stripe customer ID
+          if (!user.stripeCustomerId) {
+            console.log(`Skipping user ${user.email}: no Stripe customer ID`);
+            continue;
+          }
+
           // Get subscription details
           const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
           if (subscription.status !== 'active') {
@@ -1513,16 +1518,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          const subscriptionItemId = subscription.items.data[0].id;
-
-          // Report usage to Stripe
-          const usageRecord = await stripe.usageRecords.create(subscriptionItemId, {
-            quantity: usageQuantity,
+          // Report usage to Stripe using meter events API
+          const meterEvent = await stripe.billing.meterEvents.create({
+            event_name: 'realized_profit',
             timestamp: Math.floor(Date.now() / 1000),
-            action: 'set',
+            payload: {
+              stripe_customer_id: user.stripeCustomerId,
+              value: usageQuantity.toString()
+            }
           });
 
-          console.log(`Successfully reported usage for ${user.email}: ${usageQuantity} units, record ID: ${usageRecord.id}`);
+          console.log(`Successfully reported meter event for ${user.email}: ${usageQuantity} units, event ID: ${(meterEvent as any).id}`);
 
         } catch (userError: any) {
           console.error(`Error processing user ${user.email}:`, userError.message);
@@ -1539,10 +1545,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/report-daily-usage', async (req, res) => {
     try {
       await reportDailyUsageForAllUsers();
-      res.json({ message: "Daily usage reporting completed" });
+      res.json({ message: "Daily usage reporting completed using meter events API" });
     } catch (error: any) {
       console.error("Manual daily usage reporting error:", error);
       res.status(500).json({ message: "Failed to run daily usage reporting: " + error.message });
+    }
+  });
+
+  // Test meter events API endpoint
+  app.post('/api/test-meter-event', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user || !user.stripeCustomerId) {
+        return res.status(400).json({ message: "Stripe customer required" });
+      }
+
+      // Test meter event with sample value
+      const testValue = req.body.value || 1;
+      const meterEvent = await stripe.billing.meterEvents.create({
+        event_name: 'realized_profit',
+        timestamp: Math.floor(Date.now() / 1000),
+        payload: {
+          stripe_customer_id: user.stripeCustomerId,
+          value: testValue.toString()
+        }
+      });
+
+      res.json({ 
+        message: "Test meter event created successfully",
+        event_id: (meterEvent as any).id,
+        customer_id: user.stripeCustomerId,
+        value: testValue
+      });
+    } catch (error: any) {
+      console.error("Error creating test meter event:", error);
+      res.status(500).json({ message: "Failed to create test meter event: " + error.message });
     }
   });
 

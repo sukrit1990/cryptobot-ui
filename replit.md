@@ -76,11 +76,20 @@ Preferred communication style: Simple, everyday language.
 - Updated minimum investment validation to S$500 with user-friendly messaging
 - Enhanced sign-up flow: Step 1 (user details) → Step 2 (email verification) → Account creation
 
+### Stripe Meter Events API Migration (July 28, 2025)
+- Migrated from Stripe usage records API to modern meter events API for billing
+- Updated `/api/report-usage` endpoint to use `stripe.billing.meterEvents.create()`
+- Implemented meter event reporting with `event_name: 'realized_profit'`
+- Added test endpoint `/api/test-meter-event` for debugging meter events
+- Enhanced daily usage reporting to use meter events instead of usage records
+- Billing now uses customer ID directly instead of subscription item ID
+- Improved error handling and TypeScript compatibility for meter events API
+
 ### Stripe Metered Subscription Implementation (July 25, 2025)
 - Implemented Step 1 of metered subscription flow with card-only payments
 - Created `/api/create-customer` endpoint to handle Stripe customer creation with payment method
 - Built `/api/create-subscription` endpoint for metered subscription using price_1RoRk1AU0aPHWB2SEy3NtXI8
-- Added `/api/report-usage` endpoint for metered billing usage tracking
+- Added `/api/report-usage` endpoint for metered billing usage tracking (now using meter events API)
 - Setup `/api/setup-payment-method` for secure card payment method collection
 - Removed previous payment section from settings page as requested
 - All endpoints support only card payments, no alternative payment methods
