@@ -1520,15 +1520,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const profitData = await profitResponse.json();
           console.log(`Profit data for ${user.email}:`, profitData);
 
-          // Extract profit amount (use latest profit or total profit)
+          // Extract profit amount and convert to cents (multiply by 100 for integer requirement)
           let usageQuantity = 0;
+          let originalProfitValue = 0;
           if (profitData.profit && profitData.profit.length > 0) {
             // Get the latest profit entry
             const latestProfit = profitData.profit[profitData.profit.length - 1];
-            usageQuantity = Math.max(0, Math.round(latestProfit.PROFIT || 0));
+            originalProfitValue = Math.max(0, latestProfit.PROFIT || 0);
+            // Convert to cents (multiply by 100) to preserve decimal precision as integer
+            usageQuantity = Math.round(originalProfitValue * 100);
           }
 
-          console.log(`Reporting usage for ${user.email}: ${usageQuantity}`);
+          console.log(`Reporting usage for ${user.email}: $${originalProfitValue} (${usageQuantity} cents)`);
 
           // Ensure we have a Stripe customer ID
           if (!user.stripeCustomerId) {
@@ -1538,8 +1541,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Get subscription details
           const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-          if (subscription.status !== 'active') {
-            console.log(`Skipping inactive subscription for user ${user.email}`);
+          if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+            console.log(`Skipping subscription for user ${user.email}: status ${subscription.status}`);
             continue;
           }
 
@@ -1553,7 +1556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
 
-          console.log(`Successfully reported meter event for ${user.email}: ${usageQuantity} units, event ID: ${(meterEvent as any).id}`);
+          console.log(`Successfully reported meter event for ${user.email}: $${originalProfitValue} (${usageQuantity} cents), event ID: ${(meterEvent as any).id}`);
 
         } catch (userError: any) {
           console.error(`Error processing user ${user.email}:`, userError.message);
@@ -1688,14 +1691,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profitData = await profitResponse.json() as any;
       console.log(`Profit data for ${email}:`, profitData);
 
-      // Extract latest profit
+      // Extract latest profit and convert to cents (multiply by 100 for integer requirement)
       let usageQuantity = 0;
+      let originalProfitValue = 0;
       if (profitData.profit && profitData.profit.length > 0) {
         const latestProfit = profitData.profit[profitData.profit.length - 1];
-        usageQuantity = Math.max(0, Math.round(latestProfit.PROFIT || 0));
+        originalProfitValue = Math.max(0, latestProfit.PROFIT || 0);
+        // Convert to cents (multiply by 100) to preserve decimal precision as integer
+        usageQuantity = Math.round(originalProfitValue * 100);
       }
 
-      // Create meter event
+      // Create meter event with value in cents
       const meterEvent = await stripe.billing.meterEvents.create({
         event_name: 'realized_profit',
         timestamp: Math.floor(Date.now() / 1000),
@@ -1710,7 +1716,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user_email: email,
         event_id: (meterEvent as any).id,
         customer_id: user.stripeCustomerId,
-        profit_value: usageQuantity,
+        profit_value_dollars: originalProfitValue,
+        profit_value_cents: usageQuantity,
         profit_data: profitData
       });
     } catch (error: any) {
