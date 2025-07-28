@@ -359,11 +359,14 @@ export default function Settings() {
     onSuccess: (data) => {
       toast({
         title: "Subscription cancelled",
-        description: "Your subscription has been cancelled and automated investing is now inactive.",
+        description: "Your subscription has been cancelled and automated investing has been turned off.",
       });
+      // Refresh both subscription status and account state
       queryClient.invalidateQueries({ queryKey: ["/api/subscription-status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/account/state"] });
       setShowCancelDialog(false);
+      // Update form to reflect inactive state
+      form.setValue('investmentActive', false);
     },
     onError: (error: any) => {
       toast({
@@ -788,13 +791,18 @@ export default function Settings() {
             <AlertDialogHeader>
               <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to cancel your subscription? This will:
-                <ul className="mt-2 list-disc list-inside space-y-1">
-                  <li>Cancel your current subscription at the end of the billing period</li>
-                  <li>Turn off automated investing immediately</li>
-                  <li>Stop all future billing</li>
+                Are you sure you want to cancel your subscription? This action will:
+                <ul className="mt-2 list-disc list-inside space-y-1 text-sm">
+                  <li>Cancel your subscription at the end of the current billing period</li>
+                  <li>Automatically turn off automated investing immediately</li>
+                  <li>Stop all future billing charges</li>
+                  <li>Remove access to premium features</li>
                 </ul>
-                You can resubscribe at any time to reactivate these features.
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                  <p className="text-amber-800 text-sm font-medium">
+                    You can resubscribe at any time to restore these features.
+                  </p>
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
