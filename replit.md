@@ -35,6 +35,15 @@ Preferred communication style: Simple, everyday language.
 - Fixed sidebar tab highlighting issue using useLocation hook for dynamic styling
 - Updated investment controls section to remove AI references and add SGD fund guidance
 
+### Portfolio Dashboard Enhancements (July 27, 2025)
+- Enhanced portfolio performance chart to show both invested amount (dashed line) and current value (solid line)
+- Added dual-line visualization for easy comparison of investment vs performance over time
+- Expanded realized profit section from 2 to 4 summary cards for comprehensive analytics
+- Added "Realized Profit %" calculation showing profit as percentage of invested amount
+- Implemented "Annualized IRR" (Internal Rate of Return) calculation for investment performance metrics
+- Updated chart tooltips to distinguish between "Invested Amount" and "Current Value"
+- Improved dashboard layout with 4-column grid for better data visualization
+
 ### Subscription Display Enhancement (July 27, 2025)
 - Removed subscription ID display from active subscription section in settings
 - Removed "Metered billing enabled" text for cleaner user interface
