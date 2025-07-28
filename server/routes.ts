@@ -1469,10 +1469,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all users with active Stripe subscriptions
       const users = await storage.getAllUsersWithSubscriptions();
       
+      // Also process specific user for testing if they exist
+      const testUser = await storage.getUserByEmail('caanerishah14@gmail.com');
+      if (testUser && !users.find(u => u.email === testUser.email)) {
+        console.log('Adding test user caanerishah14@gmail.com to processing queue');
+        users.push(testUser);
+      }
+      
       for (const user of users) {
         try {
-          if (!user.email || !user.stripeSubscriptionId) {
-            console.log(`Skipping user ${user.id}: missing email or subscription`);
+          if (!user.email) {
+            console.log(`Skipping user ${user.id}: missing email`);
             continue;
           }
 
@@ -1589,6 +1596,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error creating test meter event:", error);
       res.status(500).json({ message: "Failed to create test meter event: " + error.message });
+    }
+  });
+
+  // Test meter events for specific user (no auth required for testing)
+  app.post('/api/test-user-meter-event', async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      const email = req.body.email || req.query.email;
+      if (!email) {
+        return res.status(400).json({ message: "Email parameter required" });
+      }
+      
+      console.log(`Testing meter event for user: ${email}`);
+
+      // Get user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!user.stripeCustomerId) {
+        return res.status(400).json({ message: "User has no Stripe customer ID" });
+      }
+
+      // Fetch latest profit from CryptoBot API
+      const profitResponse = await fetch(
+        `https://cryptobot-api-f15f3256ac28.herokuapp.com/profit?email=${encodeURIComponent(email)}`,
+        {
+          headers: {
+            'accept': 'application/json',
+            'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+          }
+        }
+      );
+
+      if (!profitResponse.ok) {
+        return res.status(500).json({ message: `Failed to fetch profit data: ${profitResponse.status}` });
+      }
+
+      const profitData = await profitResponse.json() as any;
+      console.log(`Profit data for ${email}:`, profitData);
+
+      // Extract latest profit
+      let usageQuantity = 0;
+      if (profitData.profit && profitData.profit.length > 0) {
+        const latestProfit = profitData.profit[profitData.profit.length - 1];
+        usageQuantity = Math.max(0, Math.round(latestProfit.PROFIT || 0));
+      }
+
+      // Create meter event
+      const meterEvent = await stripe.billing.meterEvents.create({
+        event_name: 'realized_profit',
+        timestamp: Math.floor(Date.now() / 1000),
+        payload: {
+          stripe_customer_id: user.stripeCustomerId,
+          value: usageQuantity.toString()
+        }
+      });
+
+      res.json({ 
+        message: "Meter event created successfully for user",
+        user_email: email,
+        event_id: (meterEvent as any).id,
+        customer_id: user.stripeCustomerId,
+        profit_value: usageQuantity,
+        profit_data: profitData
+      });
+    } catch (error: any) {
+      console.error("Error creating user meter event:", error);
+      res.status(500).json({ message: "Failed to create user meter event: " + error.message });
     }
   });
 
