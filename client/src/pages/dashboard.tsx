@@ -74,7 +74,8 @@ export default function Dashboard() {
   const chartData = Array.isArray(historyData) && historyData.length > 0 
     ? historyData.map((point: any) => ({
         date: new Date(point.timestamp || point.date).toLocaleDateString(),
-        value: point.current || point.value || 0,
+        invested: point.invested || 0,
+        current: point.current || point.value || 0,
         timestamp: point.timestamp || point.date
       })) 
     : [];
@@ -228,7 +229,7 @@ export default function Dashboard() {
               </Button>
             </CardTitle>
             <CardDescription>
-              Track your investment value over time
+              Compare your invested amount vs current portfolio value over time
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -255,7 +256,10 @@ export default function Dashboard() {
                       tickFormatter={(value) => `$${value.toLocaleString()}`}
                     />
                     <Tooltip 
-                      formatter={(value: any) => [formatCurrency(value), 'Portfolio Value']}
+                      formatter={(value: any, name: string) => [
+                        formatCurrency(value), 
+                        name === 'invested' ? 'Invested Amount' : 'Current Value'
+                      ]}
                       labelStyle={{ color: '#374151' }}
                       contentStyle={{ 
                         backgroundColor: '#F9FAFB', 
@@ -265,7 +269,16 @@ export default function Dashboard() {
                     />
                     <Line 
                       type="monotone" 
-                      dataKey="value" 
+                      dataKey="invested" 
+                      stroke="#6B7280" 
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      dot={{ fill: '#6B7280', strokeWidth: 2, r: 3 }}
+                      activeDot={{ r: 5, stroke: '#6B7280', strokeWidth: 2 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="current" 
                       stroke="#2563EB" 
                       strokeWidth={3}
                       dot={{ fill: '#2563EB', strokeWidth: 2, r: 4 }}
