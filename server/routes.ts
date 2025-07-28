@@ -1249,6 +1249,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create or update Stripe customer with payment method
       let customerId = user.stripeCustomerId;
       
+      // Check if existing customer is valid in Stripe
+      if (customerId) {
+        try {
+          await stripe.customers.retrieve(customerId);
+          console.log(`Existing customer ${customerId} is valid`);
+        } catch (customerError: any) {
+          console.log(`Customer ${customerId} no longer exists in Stripe, will create new one`);
+          customerId = null;
+          await storage.updateUser(session.userId, { stripeCustomerId: null });
+        }
+      }
+      
       if (!customerId) {
         // 1. Create customer
         const customer = await stripe.customers.create({
@@ -1257,6 +1269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         customerId = customer.id;
+        console.log(`Created new customer ${customerId} for user ${user.email}`);
         await storage.updateUser(session.userId, { stripeCustomerId: customerId });
       }
 
@@ -1308,8 +1321,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Get customer to check for default payment method
-      const customer = await stripe.customers.retrieve(user.stripeCustomerId);
+      // Verify customer exists and get customer to check for default payment method
+      let customer;
+      try {
+        customer = await stripe.customers.retrieve(user.stripeCustomerId);
+      } catch (customerError: any) {
+        return res.status(400).json({ message: "Invalid Stripe customer. Please create customer first by adding a payment method." });
+      }
       
       // Create new metered subscription with 30-day trial
       const subscriptionParams: any = {
@@ -1596,6 +1614,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error creating test meter event:", error);
       res.status(500).json({ message: "Failed to create test meter event: " + error.message });
+    }
+  });
+
+  // Reset user's Stripe customer ID (for testing/debugging)
+  app.post('/api/reset-stripe-customer', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (!session?.userId || !session?.isAuthenticated) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Clear both customer and subscription IDs to allow fresh creation
+      await storage.updateUser(session.userId, { 
+        stripeCustomerId: null,
+        stripeSubscriptionId: null 
+      });
+
+      res.json({ 
+        message: "Stripe customer and subscription IDs reset successfully",
+        user_email: user.email
+      });
+    } catch (error: any) {
+      console.error("Error resetting Stripe customer:", error);
+      res.status(500).json({ message: "Failed to reset Stripe customer: " + error.message });
     }
   });
 
