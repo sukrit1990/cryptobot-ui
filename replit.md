@@ -88,12 +88,13 @@ Preferred communication style: Simple, everyday language.
 - Applied new price ID to subscription creation endpoint (/api/create-subscription)
 - Updated project documentation to reflect the current metered billing price configuration
 
-### Stripe Meter Events API Migration (July 28, 2025)
+### Stripe Meter Events API Migration (July 29, 2025)
 - Migrated from Stripe usage records API to modern meter events API for billing
 - Updated `/api/report-usage` endpoint to use `stripe.billing.meterEvents.create()`
 - Implemented meter event reporting with `event_name: 'realized_profit'`
+- Fixed meter events to send daily profit increments instead of cumulative profit values
+- Enhanced daily usage reporting to calculate and send only the daily profit difference
 - Added test endpoint `/api/test-meter-event` for debugging meter events
-- Enhanced daily usage reporting to use meter events instead of usage records
 - Billing now uses customer ID directly instead of subscription item ID
 - Improved error handling and TypeScript compatibility for meter events API
 

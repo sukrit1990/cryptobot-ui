@@ -1520,18 +1520,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const profitData = await profitResponse.json();
           console.log(`Profit data for ${user.email}:`, profitData);
 
-          // Extract profit amount and convert to cents (multiply by 100 for integer requirement)
+          // Extract daily profit increment and convert to cents (multiply by 100 for integer requirement)
           let usageQuantity = 0;
           let originalProfitValue = 0;
+          let dailyProfitIncrement = 0;
+          
           if (profitData.profit && profitData.profit.length > 0) {
-            // Get the latest profit entry
+            // Get the latest profit entry (cumulative)
             const latestProfit = profitData.profit[profitData.profit.length - 1];
-            originalProfitValue = Math.max(0, latestProfit.PROFIT || 0);
+            const currentCumulativeProfit = parseFloat(latestProfit.PROFIT || 0);
+            
+            // Get the previous profit entry to calculate daily increment
+            if (profitData.profit.length > 1) {
+              const previousProfit = profitData.profit[profitData.profit.length - 2];
+              const previousCumulativeProfit = parseFloat(previousProfit.PROFIT || 0);
+              dailyProfitIncrement = Math.max(0, currentCumulativeProfit - previousCumulativeProfit);
+            } else {
+              // If this is the first entry, use the full amount as daily increment
+              dailyProfitIncrement = Math.max(0, currentCumulativeProfit);
+            }
+            
+            originalProfitValue = dailyProfitIncrement;
             // Convert to cents (multiply by 100) to preserve decimal precision as integer
-            usageQuantity = Math.round(originalProfitValue * 100);
+            usageQuantity = Math.round(dailyProfitIncrement * 100);
           }
 
-          console.log(`Reporting usage for ${user.email}: $${originalProfitValue} (${usageQuantity} cents)`);
+          console.log(`Reporting daily profit increment for ${user.email}: $${originalProfitValue} (${usageQuantity} cents)`);
 
           // Ensure we have a Stripe customer ID
           if (!user.stripeCustomerId) {
@@ -1556,7 +1570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
 
-          console.log(`Successfully reported meter event for ${user.email}: $${originalProfitValue} (${usageQuantity} cents), event ID: ${(meterEvent as any).id}`);
+          console.log(`Successfully reported daily profit increment meter event for ${user.email}: $${originalProfitValue} (${usageQuantity} cents), event ID: ${(meterEvent as any).id}`);
 
         } catch (userError: any) {
           console.error(`Error processing user ${user.email}:`, userError.message);
@@ -1691,14 +1705,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profitData = await profitResponse.json() as any;
       console.log(`Profit data for ${email}:`, profitData);
 
-      // Extract latest profit and convert to cents (multiply by 100 for integer requirement)
+      // Extract daily profit increment and convert to cents (multiply by 100 for integer requirement)
       let usageQuantity = 0;
       let originalProfitValue = 0;
+      let dailyProfitIncrement = 0;
+      
       if (profitData.profit && profitData.profit.length > 0) {
+        // Get the latest profit entry (cumulative)
         const latestProfit = profitData.profit[profitData.profit.length - 1];
-        originalProfitValue = Math.max(0, latestProfit.PROFIT || 0);
+        const currentCumulativeProfit = parseFloat(latestProfit.PROFIT || 0);
+        
+        // Get the previous profit entry to calculate daily increment
+        if (profitData.profit.length > 1) {
+          const previousProfit = profitData.profit[profitData.profit.length - 2];
+          const previousCumulativeProfit = parseFloat(previousProfit.PROFIT || 0);
+          dailyProfitIncrement = Math.max(0, currentCumulativeProfit - previousCumulativeProfit);
+        } else {
+          // If this is the first entry, use the full amount as daily increment
+          dailyProfitIncrement = Math.max(0, currentCumulativeProfit);
+        }
+        
+        originalProfitValue = dailyProfitIncrement;
         // Convert to cents (multiply by 100) to preserve decimal precision as integer
-        usageQuantity = Math.round(originalProfitValue * 100);
+        usageQuantity = Math.round(dailyProfitIncrement * 100);
       }
 
       // Create meter event with value in cents
@@ -1712,12 +1741,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json({ 
-        message: "Meter event created successfully for user",
+        message: "Daily profit increment meter event created successfully for user",
         user_email: email,
         event_id: (meterEvent as any).id,
         customer_id: user.stripeCustomerId,
-        profit_value_dollars: originalProfitValue,
-        profit_value_cents: usageQuantity,
+        daily_profit_increment_dollars: originalProfitValue,
+        daily_profit_increment_cents: usageQuantity,
         profit_data: profitData
       });
     } catch (error: any) {
