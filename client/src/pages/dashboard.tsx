@@ -445,7 +445,7 @@ export default function Dashboard() {
                   </Button>
                 </CardTitle>
                 <CardDescription>
-                  Track your realized profits over time
+                  Track your cumulative realized profits over time
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -459,21 +459,10 @@ export default function Dashboard() {
                 ) : profitData && profitData.profit?.length > 0 ? (
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={(() => {
-                        // Convert cumulative profit to daily increments
-                        const dailyProfits = profitData.profit.map((item: any, index: number) => {
-                          const currentProfit = parseFloat(item.PROFIT || 0);
-                          const previousProfit = index > 0 ? parseFloat(profitData.profit[index - 1].PROFIT || 0) : 0;
-                          const dailyIncrement = currentProfit - previousProfit;
-                          
-                          return {
-                            ...item,
-                            DAILY_PROFIT: dailyIncrement,
-                            CUMULATIVE_PROFIT: currentProfit
-                          };
-                        });
-                        return dailyProfits;
-                      })()}>
+                      <LineChart data={profitData.profit.map((item: any) => ({
+                        ...item,
+                        PROFIT: parseFloat(item.PROFIT || 0)
+                      }))}>
                         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                         <XAxis 
                           dataKey="DATE" 
@@ -486,12 +475,7 @@ export default function Dashboard() {
                           tickFormatter={(value) => `$${value.toLocaleString()}`}
                         />
                         <Tooltip 
-                          formatter={(value: any, name: string) => {
-                            if (name === 'DAILY_PROFIT') {
-                              return [formatCurrency(value), 'Daily Profit'];
-                            }
-                            return [formatCurrency(value), 'Cumulative Profit'];
-                          }}
+                          formatter={(value: any) => [formatCurrency(value), 'Cumulative Profit']}
                           labelStyle={{ color: '#374151' }}
                           contentStyle={{ 
                             backgroundColor: '#F9FAFB', 
@@ -499,12 +483,15 @@ export default function Dashboard() {
                             borderRadius: '8px'
                           }}
                         />
-                        <Bar 
-                          dataKey="DAILY_PROFIT" 
-                          fill="#10B981"
-                          radius={[4, 4, 0, 0]}
+                        <Line 
+                          type="monotone"
+                          dataKey="PROFIT" 
+                          stroke="#10B981"
+                          strokeWidth={3}
+                          dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 2 }}
                         />
-                      </BarChart>
+                      </LineChart>
                     </ResponsiveContainer>
                   </div>
                 ) : (

@@ -80,7 +80,7 @@ Preferred communication style: Simple, everyday language.
 - Fixed profit calculations to handle cumulative profit data from CryptoBot API
 - Updated Total Realized Profit to show latest cumulative value instead of sum
 - Modified Latest Day Profit to calculate daily increment from cumulative data
-- Enhanced profit bar chart to display daily profit increments rather than cumulative values
+- Changed profit chart from bar chart to line chart showing cumulative profit over time
 - Updated Realized Profit % and Annualized IRR calculations to use latest cumulative profit
 
 ### Stripe Price ID Update (July 28, 2025)
