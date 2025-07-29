@@ -1333,7 +1333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const subscriptionParams: any = {
         customer: user.stripeCustomerId,
         items: [{
-          price: 'price_1RqEItAU0aPHWB2SsfmhdjcK', // Metered price ID
+          price: 'price_1RqEaqAU0aPHWB2SC3FlYezV', // Metered price ID
         }],
         trial_period_days: 30, // 30-day free trial
         expand: ['latest_invoice.payment_intent'],

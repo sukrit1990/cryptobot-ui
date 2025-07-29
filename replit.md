@@ -84,7 +84,7 @@ Preferred communication style: Simple, everyday language.
 - Updated Realized Profit % and Annualized IRR calculations to use latest cumulative profit
 
 ### Stripe Price ID Update (July 29, 2025)
-- Updated Stripe price ID to price_1RqEItAU0aPHWB2SsfmhdjcK (latest version)
+- Updated Stripe price ID to price_1RqEaqAU0aPHWB2SC3FlYezV (latest version)
 - Applied new price ID to subscription creation endpoint (/api/create-subscription)
 - Updated project documentation to reflect the current metered billing price configuration
 
