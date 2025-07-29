@@ -83,10 +83,10 @@ Preferred communication style: Simple, everyday language.
 - Changed profit chart from bar chart to line chart showing cumulative profit over time
 - Updated Realized Profit % and Annualized IRR calculations to use latest cumulative profit
 
-### Stripe Price ID Update (July 28, 2025)
-- Updated Stripe price ID from price_1RoRk1AU0aPHWB2SEy3NtXI8 to price_1RpghZAU0aPHWB2Sw5glpgdn
+### Stripe Price ID Update (July 29, 2025)
+- Updated Stripe price ID to price_1RqEItAU0aPHWB2SsfmhdjcK (latest version)
 - Applied new price ID to subscription creation endpoint (/api/create-subscription)
-- Updated project documentation to reflect the new metered billing price configuration
+- Updated project documentation to reflect the current metered billing price configuration
 
 ### Stripe Meter Events API Migration (July 28, 2025)
 - Migrated from Stripe usage records API to modern meter events API for billing
