@@ -320,12 +320,12 @@ export default function Dashboard() {
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900">
                     {profitData && profitData.profit?.length > 0 
-                      ? formatCurrency(profitData.profit.reduce((sum: number, item: any) => sum + (parseFloat(item.PROFIT) || 0), 0))
+                      ? formatCurrency(parseFloat(profitData.profit[profitData.profit.length - 1]?.PROFIT || 0))
                       : "No profit data"
                     }
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Cumulative trading profits
+                    Total realized profits
                   </p>
                 </CardContent>
               </Card>
@@ -340,10 +340,16 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900">
-                    {profitData && profitData.profit?.length > 0
-                      ? formatCurrency(parseFloat(profitData.profit[profitData.profit.length - 1]?.PROFIT || 0))
-                      : "No data"
-                    }
+                    {(() => {
+                      if (profitData && profitData.profit?.length > 0) {
+                        const latestIndex = profitData.profit.length - 1;
+                        const currentProfit = parseFloat(profitData.profit[latestIndex]?.PROFIT || 0);
+                        const previousProfit = latestIndex > 0 ? parseFloat(profitData.profit[latestIndex - 1]?.PROFIT || 0) : 0;
+                        const dailyIncrement = currentProfit - previousProfit;
+                        return formatCurrency(dailyIncrement);
+                      }
+                      return "No data";
+                    })()}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
                     {profitData && profitData.profit?.length > 0
@@ -366,8 +372,8 @@ export default function Dashboard() {
                   <div className="text-2xl font-bold text-gray-900">
                     {(() => {
                       if (profitData && profitData.profit?.length > 0 && portfolio.investedValue > 0) {
-                        const totalProfit = profitData.profit.reduce((sum: number, item: any) => sum + (parseFloat(item.PROFIT) || 0), 0);
-                        const profitPercentage = (totalProfit / portfolio.investedValue) * 100;
+                        const latestProfit = parseFloat(profitData.profit[profitData.profit.length - 1]?.PROFIT || 0);
+                        const profitPercentage = (latestProfit / portfolio.investedValue) * 100;
                         return `${profitPercentage >= 0 ? '+' : ''}${profitPercentage.toFixed(2)}%`;
                       }
                       return "Calculating...";
@@ -391,8 +397,8 @@ export default function Dashboard() {
                   <div className="text-2xl font-bold text-gray-900">
                     {(() => {
                       if (profitData && profitData.profit?.length > 0 && portfolio.investedValue > 0) {
-                        const totalProfit = profitData.profit.reduce((sum: number, item: any) => sum + (parseFloat(item.PROFIT) || 0), 0);
-                        const profitPercentage = (totalProfit / portfolio.investedValue) * 100;
+                        const latestProfit = parseFloat(profitData.profit[profitData.profit.length - 1]?.PROFIT || 0);
+                        const profitPercentage = (latestProfit / portfolio.investedValue) * 100;
                         
                         // Simple IRR calculation: assume profits are realized over time period
                         const daysInvested = profitData.profit.length; // Number of data points as proxy for days
@@ -453,7 +459,21 @@ export default function Dashboard() {
                 ) : profitData && profitData.profit?.length > 0 ? (
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={profitData.profit}>
+                      <BarChart data={(() => {
+                        // Convert cumulative profit to daily increments
+                        const dailyProfits = profitData.profit.map((item: any, index: number) => {
+                          const currentProfit = parseFloat(item.PROFIT || 0);
+                          const previousProfit = index > 0 ? parseFloat(profitData.profit[index - 1].PROFIT || 0) : 0;
+                          const dailyIncrement = currentProfit - previousProfit;
+                          
+                          return {
+                            ...item,
+                            DAILY_PROFIT: dailyIncrement,
+                            CUMULATIVE_PROFIT: currentProfit
+                          };
+                        });
+                        return dailyProfits;
+                      })()}>
                         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                         <XAxis 
                           dataKey="DATE" 
@@ -466,7 +486,12 @@ export default function Dashboard() {
                           tickFormatter={(value) => `$${value.toLocaleString()}`}
                         />
                         <Tooltip 
-                          formatter={(value: any) => [formatCurrency(value), 'Daily Profit']}
+                          formatter={(value: any, name: string) => {
+                            if (name === 'DAILY_PROFIT') {
+                              return [formatCurrency(value), 'Daily Profit'];
+                            }
+                            return [formatCurrency(value), 'Cumulative Profit'];
+                          }}
                           labelStyle={{ color: '#374151' }}
                           contentStyle={{ 
                             backgroundColor: '#F9FAFB', 
@@ -475,7 +500,7 @@ export default function Dashboard() {
                           }}
                         />
                         <Bar 
-                          dataKey="PROFIT" 
+                          dataKey="DAILY_PROFIT" 
                           fill="#10B981"
                           radius={[4, 4, 0, 0]}
                         />

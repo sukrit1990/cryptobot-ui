@@ -76,6 +76,13 @@ Preferred communication style: Simple, everyday language.
 - Updated minimum investment validation to S$500 with user-friendly messaging
 - Enhanced sign-up flow: Step 1 (user details) → Step 2 (email verification) → Account creation
 
+### Realized Profit Graph Update (July 29, 2025)
+- Fixed profit calculations to handle cumulative profit data from CryptoBot API
+- Updated Total Realized Profit to show latest cumulative value instead of sum
+- Modified Latest Day Profit to calculate daily increment from cumulative data
+- Enhanced profit bar chart to display daily profit increments rather than cumulative values
+- Updated Realized Profit % and Annualized IRR calculations to use latest cumulative profit
+
 ### Stripe Price ID Update (July 28, 2025)
 - Updated Stripe price ID from price_1RoRk1AU0aPHWB2SEy3NtXI8 to price_1RpghZAU0aPHWB2Sw5glpgdn
 - Applied new price ID to subscription creation endpoint (/api/create-subscription)
