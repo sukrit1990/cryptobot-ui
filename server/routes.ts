@@ -355,8 +355,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         verified: false,
       });
 
-      // Send OTP email
-      await sendOtpEmail(email, otpCode);
+      // Send password reset email
+      await sendOtpEmail(email, otpCode, 'password-reset');
 
       console.log(`Password reset OTP sent to ${email}: ${otpCode}`);
       res.json({ message: "If an account with this email exists, you will receive a password reset code." });
