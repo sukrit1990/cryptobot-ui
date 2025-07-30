@@ -25,7 +25,7 @@ export async function sendOtpEmail(email: string, otpCode: string): Promise<void
   // In production, send actual email using SendGrid
   const emailData = {
     to: email,
-    from: 'noreply@cryptoinvestpro.com', // Replace with your verified sender email
+    from: 'sukrit.raghuvanshi1990@gmail.com', // Verified sender email
     subject: 'Verify your CryptoInvest Pro account',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
