@@ -65,12 +65,13 @@ Preferred communication style: Simple, everyday language.
 - Integrated automated investing toggle with real CryptoBot API state control
 - Toggle reflects actual account status: "A" = Active, "I" = Inactive with visual indicators
 
-### Email OTP Verification System (July 25, 2025)
+### Email OTP Verification System (July 29, 2025)
 - Implemented secure email OTP verification during sign-up process
 - Added `otpCodes` database table for temporary verification code storage
 - Created `/api/send-otp` endpoint to generate and send 6-digit verification codes
 - Built `/api/verify-otp` endpoint to validate codes and complete user registration
-- Integrated nodemailer for email delivery with development console logging fallback
+- Updated email service to use SendGrid for reliable production email delivery
+- Replaced nodemailer/Gmail with SendGrid API for better deployment compatibility
 - Added comprehensive two-step sign-up UI with verification code input
 - OTP codes expire after 10 minutes for security
 - Updated minimum investment validation to S$500 with user-friendly messaging

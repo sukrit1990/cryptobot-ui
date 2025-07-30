@@ -1,18 +1,15 @@
-import nodemailer from 'nodemailer';
+import { MailService } from '@sendgrid/mail';
 
-// Create email transporter
-// In development, we'll use console logging instead of actual email sending
+// Create email service
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-const transporter = isDevelopment 
-  ? null // We'll handle development differently
-  : nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER || 'noreply@cryptoinvestpro.com',
-        pass: process.env.EMAIL_PASSWORD || 'your-app-password'
-      }
-    });
+let mailService: MailService | null = null;
+
+// Initialize SendGrid for production
+if (!isDevelopment && process.env.SENDGRID_API_KEY) {
+  mailService = new MailService();
+  mailService.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 export async function sendOtpEmail(email: string, otpCode: string): Promise<void> {
   // In development mode, just log the OTP to console
@@ -25,10 +22,10 @@ export async function sendOtpEmail(email: string, otpCode: string): Promise<void
     return;
   }
 
-  // In production, send actual email
-  const mailOptions = {
-    from: process.env.EMAIL_USER || 'noreply@cryptoinvestpro.com',
+  // In production, send actual email using SendGrid
+  const emailData = {
     to: email,
+    from: 'noreply@cryptoinvestpro.com', // Replace with your verified sender email
     subject: 'Verify your CryptoInvest Pro account',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -68,13 +65,22 @@ export async function sendOtpEmail(email: string, otpCode: string): Promise<void
   };
 
   try {
-    if (transporter) {
-      await transporter.sendMail(mailOptions);
-      console.log(`OTP email sent successfully to ${email}`);
+    if (mailService) {
+      await mailService.send(emailData);
+      console.log(`OTP email sent successfully to ${email} via SendGrid`);
+    } else {
+      console.error('SendGrid service not initialized - missing SENDGRID_API_KEY');
+      throw new Error('Email service not configured');
     }
-  } catch (error) {
-    console.error('Error sending OTP email:', error);
-    throw new Error('Failed to send verification email');
+  } catch (error: any) {
+    console.error('Error sending OTP email via SendGrid:', error);
+    
+    // Provide more specific error information
+    if (error.response?.body?.errors) {
+      console.error('SendGrid errors:', error.response.body.errors);
+    }
+    
+    throw new Error('Failed to send verification email. Please try again or contact support.');
   }
 }
 
