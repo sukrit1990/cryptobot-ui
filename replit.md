@@ -10,6 +10,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Meter Events API Access Restriction (July 31, 2025)
+- Restricted Stripe meter events API calls to only Daily Automated Usage Reporting (2 AM daily)
+- Disabled manual meter event creation in `/api/report-usage`, `/api/test-meter-event`, and `/api/test-user-meter-event` endpoints
+- Disabled manual daily usage reporting trigger `/api/report-daily-usage` 
+- All manual endpoints now return informational messages explaining automated-only policy
+- Meter events are exclusively created through the automated background job for billing accuracy
+- Enhanced system to prevent accidental duplicate or manual billing events
+
 ### Subscription Management Enhancement (July 31, 2025)
 - Added admin endpoint `/api/admin/cancel-subscription-by-email` for administrative subscription cancellation
 - Successfully cancelled existing subscription for sukrit.raghuvanshi1990@gmail.com

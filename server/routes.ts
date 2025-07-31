@@ -1521,7 +1521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Step 3: Report Usage for Metered Billing using Meter Events API
+  // Report Usage endpoint (meter events disabled - only used for daily automated reporting)
   app.post('/api/report-usage', async (req, res) => {
     try {
       const session = req.session as any;
@@ -1534,29 +1534,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Usage quantity required" });
       }
 
-      if (!stripe) {
-        return res.status(500).json({ message: "Stripe is not configured" });
-      }
-
       const user = await storage.getUser(session.userId);
       if (!user || !user.stripeCustomerId) {
         return res.status(400).json({ message: "Stripe customer required" });
       }
 
-      // Create meter event using the new API
-      const meterEvent = await stripe.billing.meterEvents.create({
-        event_name: 'realized_profit',
-        timestamp: Math.floor(Date.now() / 1000),
-        payload: {
-          stripe_customer_id: user.stripeCustomerId,
-          value: usage_quantity.toString()
-        }
+      // Meter events are only created through daily automated reporting
+      res.json({ 
+        message: "Manual usage reporting is disabled. Usage is automatically reported daily.",
+        user_id: user.id,
+        usage_quantity: usage_quantity
       });
-
-      res.json({ meter_event_id: (meterEvent as any).id });
     } catch (error: any) {
-      console.error("Error reporting meter event:", error);
-      res.status(500).json({ message: "Failed to report meter event: " + error.message });
+      console.error("Error in report usage:", error);
+      res.status(500).json({ message: "Failed to process usage report: " + error.message });
     }
   });
 
@@ -1664,18 +1655,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
-  // Manual trigger endpoint for daily usage reporting (for testing)
+  // Manual trigger endpoint for daily usage reporting (disabled - automated only)
   app.post('/api/report-daily-usage', async (req, res) => {
     try {
-      await reportDailyUsageForAllUsers();
-      res.json({ message: "Daily usage reporting completed using meter events API" });
+      res.json({ 
+        message: "Manual daily usage reporting is disabled. Usage reporting is fully automated and runs daily at 2 AM.",
+        note: "Meter events are only created through the automated daily reporting system"
+      });
     } catch (error: any) {
       console.error("Manual daily usage reporting error:", error);
-      res.status(500).json({ message: "Failed to run daily usage reporting: " + error.message });
+      res.status(500).json({ message: "Failed to process request: " + error.message });
     }
   });
 
-  // Test meter events API endpoint
+  // Test meter events endpoint (disabled - meter events only for daily automated reporting)
   app.post('/api/test-meter-event', async (req, res) => {
     try {
       const session = req.session as any;
@@ -1683,35 +1676,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      if (!stripe) {
-        return res.status(500).json({ message: "Stripe is not configured" });
-      }
-
       const user = await storage.getUser(session.userId);
       if (!user || !user.stripeCustomerId) {
         return res.status(400).json({ message: "Stripe customer required" });
       }
 
-      // Test meter event with sample value
       const testValue = req.body.value || 1;
-      const meterEvent = await stripe.billing.meterEvents.create({
-        event_name: 'realized_profit',
-        timestamp: Math.floor(Date.now() / 1000),
-        payload: {
-          stripe_customer_id: user.stripeCustomerId,
-          value: testValue.toString()
-        }
-      });
-
+      
       res.json({ 
-        message: "Test meter event created successfully",
-        event_id: (meterEvent as any).id,
+        message: "Meter event testing is disabled. Meter events are only created through daily automated reporting.",
         customer_id: user.stripeCustomerId,
-        value: testValue
+        test_value: testValue,
+        note: "Daily automated reporting will handle all meter events"
       });
     } catch (error: any) {
-      console.error("Error creating test meter event:", error);
-      res.status(500).json({ message: "Failed to create test meter event: " + error.message });
+      console.error("Error in test meter event:", error);
+      res.status(500).json({ message: "Failed to process test request: " + error.message });
     }
   });
 
@@ -1811,24 +1791,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         usageQuantity = Math.round(dailyProfitIncrement * 100);
       }
 
-      // Create meter event with value in cents
-      const meterEvent = await stripe.billing.meterEvents.create({
-        event_name: 'realized_profit',
-        timestamp: Math.floor(Date.now() / 1000),
-        payload: {
-          stripe_customer_id: user.stripeCustomerId,
-          value: usageQuantity.toString()
-        }
-      });
-
+      // Meter events are only created through daily automated reporting
       res.json({ 
-        message: "Daily profit increment meter event created successfully for user",
+        message: "Daily profit increment meter event creation disabled for manual testing",
         user_email: email,
-        event_id: (meterEvent as any).id,
         customer_id: user.stripeCustomerId,
         daily_profit_increment_dollars: originalProfitValue,
         daily_profit_increment_cents: usageQuantity,
-        profit_data: profitData
+        profit_data: profitData,
+        note: "Meter events are only created through daily automated reporting"
       });
     } catch (error: any) {
       console.error("Error creating user meter event:", error);
