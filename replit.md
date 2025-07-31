@@ -10,6 +10,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Subscription Management Enhancement (July 31, 2025)
+- Added admin endpoint `/api/admin/cancel-subscription-by-email` for administrative subscription cancellation
+- Successfully cancelled existing subscription for sukrit.raghuvanshi1990@gmail.com
+- Cleaned up stale subscription IDs from database when Stripe subscriptions no longer exist
+- Enhanced subscription cancellation to also toggle CryptoBot account state to inactive when appropriate
+- Improved error handling for subscription management operations
+
 ### Password Encryption Implementation (July 27, 2025)
 - Implemented secure password storage using bcrypt with 12 salt rounds
 - Added password hashing utility functions in server/auth.ts

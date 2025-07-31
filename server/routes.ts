@@ -1382,10 +1382,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No active subscription found" });
       }
 
-      // Cancel the subscription at period end
-      const subscription = await stripe.subscriptions.update(user.stripeSubscriptionId, {
-        cancel_at_period_end: true
-      });
+      // Cancel the subscription immediately
+      const subscription = await stripe.subscriptions.cancel(user.stripeSubscriptionId);
 
       // Remove subscription ID from user record
       await storage.updateUser(session.userId, { stripeSubscriptionId: null });
@@ -1436,6 +1434,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error cancelling subscription:", error);
+      res.status(500).json({ message: "Failed to cancel subscription: " + error.message });
+    }
+  });
+
+  // Admin endpoint to cancel subscription by email
+  app.post('/api/admin/cancel-subscription-by-email', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      // Get user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!user.stripeSubscriptionId) {
+        return res.status(400).json({ message: "User has no active subscription" });
+      }
+
+      console.log(`Cancelling subscription for user: ${email}, subscription ID: ${user.stripeSubscriptionId}`);
+
+      // Cancel the subscription immediately
+      const subscription = await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+
+      // Remove subscription ID from user record
+      await storage.updateUser(user.id, { stripeSubscriptionId: null });
+
+      // Toggle account state to inactive if currently active
+      if (user.email) {
+        try {
+          const accountResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account_state?email=${encodeURIComponent(user.email)}`, {
+            method: 'GET',
+            headers: {
+              'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA',
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (accountResponse.ok) {
+            const accountData = await accountResponse.json();
+            console.log("Current account state:", accountData);
+
+            // If account is active (state: 'A'), toggle to inactive
+            if (accountData.state === 'A') {
+              const toggleResponse = await fetch('https://cryptobot-api-f15f3256ac28.herokuapp.com/toggle_account_state', {
+                method: 'POST',
+                headers: {
+                  'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email: user.email })
+              });
+
+              if (toggleResponse.ok) {
+                console.log("Account state toggled to inactive");
+              } else {
+                console.error("Failed to toggle account state:", await toggleResponse.text());
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error toggling account state:", error);
+        }
+      }
+
+      res.json({
+        message: "Subscription cancelled successfully",
+        user_email: email,
+        user_id: user.id,
+        subscription_id: subscription.id,
+        cancelled_at: subscription.canceled_at,
+        subscription_status: subscription.status
+      });
+    } catch (error: any) {
+      console.error("Error cancelling subscription by email:", error);
       res.status(500).json({ message: "Failed to cancel subscription: " + error.message });
     }
   });
