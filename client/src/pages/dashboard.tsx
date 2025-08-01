@@ -319,13 +319,34 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-gray-900">
-                    {profitData && profitData.profit?.length > 0 
-                      ? formatCurrency(parseFloat(profitData.profit[profitData.profit.length - 1]?.PROFIT || 0))
-                      : "No profit data"
-                    }
+                    {(() => {
+                      if (profitData && profitData.profit?.length > 0) {
+                        // Sort profit data by date first to get the actual latest entry
+                        const sortedProfitData = [...profitData.profit].sort((a, b) => {
+                          const dateA = new Date(a.DATE);
+                          const dateB = new Date(b.DATE);
+                          return dateA.getTime() - dateB.getTime();
+                        });
+                        const latestProfitEntry = sortedProfitData[sortedProfitData.length - 1];
+                        return formatCurrency(parseFloat(latestProfitEntry?.PROFIT || 0));
+                      }
+                      return "No profit data";
+                    })()}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Total realized profits
+                    {(() => {
+                      if (profitData && profitData.profit?.length > 0) {
+                        // Get the latest date after sorting
+                        const sortedProfitData = [...profitData.profit].sort((a, b) => {
+                          const dateA = new Date(a.DATE);
+                          const dateB = new Date(b.DATE);
+                          return dateA.getTime() - dateB.getTime();
+                        });
+                        const latestDate = sortedProfitData[sortedProfitData.length - 1]?.DATE;
+                        return `As of ${latestDate}`;
+                      }
+                      return "Total realized profits";
+                    })()}
                   </p>
                 </CardContent>
               </Card>
@@ -342,9 +363,16 @@ export default function Dashboard() {
                   <div className="text-2xl font-bold text-gray-900">
                     {(() => {
                       if (profitData && profitData.profit?.length > 0) {
-                        const latestIndex = profitData.profit.length - 1;
-                        const currentProfit = parseFloat(profitData.profit[latestIndex]?.PROFIT || 0);
-                        const previousProfit = latestIndex > 0 ? parseFloat(profitData.profit[latestIndex - 1]?.PROFIT || 0) : 0;
+                        // Sort profit data by date first to get accurate latest entry
+                        const sortedProfitData = [...profitData.profit].sort((a, b) => {
+                          const dateA = new Date(a.DATE);
+                          const dateB = new Date(b.DATE);
+                          return dateA.getTime() - dateB.getTime();
+                        });
+                        
+                        const latestIndex = sortedProfitData.length - 1;
+                        const currentProfit = parseFloat(sortedProfitData[latestIndex]?.PROFIT || 0);
+                        const previousProfit = latestIndex > 0 ? parseFloat(sortedProfitData[latestIndex - 1]?.PROFIT || 0) : 0;
                         const dailyIncrement = currentProfit - previousProfit;
                         return formatCurrency(dailyIncrement);
                       }
@@ -352,10 +380,19 @@ export default function Dashboard() {
                     })()}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {profitData && profitData.profit?.length > 0
-                      ? `On ${profitData.profit[profitData.profit.length - 1]?.DATE}`
-                      : "Latest profit information"
-                    }
+                    {(() => {
+                      if (profitData && profitData.profit?.length > 0) {
+                        // Get the latest date after sorting
+                        const sortedProfitData = [...profitData.profit].sort((a, b) => {
+                          const dateA = new Date(a.DATE);
+                          const dateB = new Date(b.DATE);
+                          return dateA.getTime() - dateB.getTime();
+                        });
+                        const latestDate = sortedProfitData[sortedProfitData.length - 1]?.DATE;
+                        return `On ${latestDate}`;
+                      }
+                      return "Latest profit information";
+                    })()}
                   </p>
                 </CardContent>
               </Card>
@@ -372,7 +409,13 @@ export default function Dashboard() {
                   <div className="text-2xl font-bold text-gray-900">
                     {(() => {
                       if (profitData && profitData.profit?.length > 0 && portfolio.investedValue > 0) {
-                        const latestProfit = parseFloat(profitData.profit[profitData.profit.length - 1]?.PROFIT || 0);
+                        // Sort profit data by date first to get accurate latest entry
+                        const sortedProfitData = [...profitData.profit].sort((a, b) => {
+                          const dateA = new Date(a.DATE);
+                          const dateB = new Date(b.DATE);
+                          return dateA.getTime() - dateB.getTime();
+                        });
+                        const latestProfit = parseFloat(sortedProfitData[sortedProfitData.length - 1]?.PROFIT || 0);
                         const profitPercentage = (latestProfit / portfolio.investedValue) * 100;
                         return `${profitPercentage >= 0 ? '+' : ''}${profitPercentage.toFixed(2)}%`;
                       }
@@ -397,11 +440,17 @@ export default function Dashboard() {
                   <div className="text-2xl font-bold text-gray-900">
                     {(() => {
                       if (profitData && profitData.profit?.length > 0 && portfolio.investedValue > 0) {
-                        const latestProfit = parseFloat(profitData.profit[profitData.profit.length - 1]?.PROFIT || 0);
+                        // Sort profit data by date first to get accurate latest entry
+                        const sortedProfitData = [...profitData.profit].sort((a, b) => {
+                          const dateA = new Date(a.DATE);
+                          const dateB = new Date(b.DATE);
+                          return dateA.getTime() - dateB.getTime();
+                        });
+                        const latestProfit = parseFloat(sortedProfitData[sortedProfitData.length - 1]?.PROFIT || 0);
                         const profitPercentage = (latestProfit / portfolio.investedValue) * 100;
                         
                         // Simple IRR calculation: assume profits are realized over time period
-                        const daysInvested = profitData.profit.length; // Number of data points as proxy for days
+                        const daysInvested = sortedProfitData.length; // Number of data points as proxy for days
                         const annualizedReturn = daysInvested > 0 ? (profitPercentage * 365) / daysInvested : 0;
                         
                         return `${annualizedReturn >= 0 ? '+' : ''}${annualizedReturn.toFixed(1)}%`;
@@ -459,10 +508,19 @@ export default function Dashboard() {
                 ) : profitData && profitData.profit?.length > 0 ? (
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={profitData.profit.map((item: any) => ({
-                        ...item,
-                        PROFIT: parseFloat(item.PROFIT || 0)
-                      }))}>
+                      <LineChart data={(() => {
+                        // Sort profit data by date chronologically before displaying
+                        const sortedData = [...profitData.profit].sort((a, b) => {
+                          const dateA = new Date(a.DATE);
+                          const dateB = new Date(b.DATE);
+                          return dateA.getTime() - dateB.getTime();
+                        });
+                        
+                        return sortedData.map((item: any) => ({
+                          ...item,
+                          PROFIT: parseFloat(item.PROFIT || 0)
+                        }));
+                      })()}>
                         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                         <XAxis 
                           dataKey="DATE" 
