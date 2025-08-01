@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, RefreshCw, PiggyBank } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useQuery } from "@tanstack/react-query";
@@ -26,6 +27,9 @@ export default function Dashboard() {
     returns: 0,
     returnsPercentage: 0
   });
+
+  const [portfolioTimeView, setPortfolioTimeView] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [profitTimeView, setProfitTimeView] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
   // Fetch portfolio history from CryptoBot API
   const { data: historyData, isLoading: historyLoading, refetch: refetchHistory } = useQuery({
@@ -70,9 +74,52 @@ export default function Dashboard() {
     refetchProfit();
   };
 
-  // Format data for the chart
+  // Helper function to aggregate data by time period
+  const aggregateDataByPeriod = (data: any[], timeView: 'daily' | 'weekly' | 'monthly') => {
+    if (!data || data.length === 0) return [];
+    
+    // Sort data by date first
+    const sortedData = [...data].sort((a, b) => {
+      const dateA = new Date(a.timestamp || a.date || a.DATE);
+      const dateB = new Date(b.timestamp || b.date || b.DATE);
+      return dateA.getTime() - dateB.getTime();
+    });
+
+    if (timeView === 'daily') {
+      return sortedData;
+    }
+
+    const aggregated: { [key: string]: any } = {};
+
+    sortedData.forEach((point: any) => {
+      const date = new Date(point.timestamp || point.date || point.DATE);
+      let periodKey: string;
+
+      if (timeView === 'weekly') {
+        // Get the start of the week (Sunday)
+        const startOfWeek = new Date(date);
+        startOfWeek.setDate(date.getDate() - date.getDay());
+        periodKey = startOfWeek.toISOString().split('T')[0];
+      } else if (timeView === 'monthly') {
+        // Get the start of the month
+        periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+      } else {
+        periodKey = date.toISOString().split('T')[0];
+      }
+
+      // For portfolio data, take the latest value in the period
+      // For profit data, take the latest cumulative value in the period
+      if (!aggregated[periodKey] || new Date(point.timestamp || point.date || point.DATE) > new Date(aggregated[periodKey].timestamp || aggregated[periodKey].date || aggregated[periodKey].DATE)) {
+        aggregated[periodKey] = { ...point };
+      }
+    });
+
+    return Object.values(aggregated);
+  };
+
+  // Format data for the portfolio chart
   const chartData = Array.isArray(historyData) && historyData.length > 0 
-    ? historyData.map((point: any) => ({
+    ? aggregateDataByPeriod(historyData, portfolioTimeView).map((point: any) => ({
         date: new Date(point.timestamp || point.date).toLocaleDateString(),
         invested: point.invested || 0,
         current: point.current || point.value || 0,
@@ -209,24 +256,36 @@ export default function Dashboard() {
                 <BarChart3 className="h-5 w-5 text-blue-600" />
                 <span>Portfolio Performance</span>
               </div>
-              <Button 
-                onClick={handleRefresh}
-                disabled={historyLoading}
-                variant="outline"
-                size="sm"
-              >
-                {historyLoading ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Refresh
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center space-x-2">
+                <Select value={portfolioTimeView} onValueChange={(value: 'daily' | 'weekly' | 'monthly') => setPortfolioTimeView(value)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button 
+                  onClick={handleRefresh}
+                  disabled={historyLoading}
+                  variant="outline"
+                  size="sm"
+                >
+                  {historyLoading ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Refresh
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardTitle>
             <CardDescription>
               Compare your invested amount vs current portfolio value over time
@@ -473,25 +532,36 @@ export default function Dashboard() {
                     <BarChart3 className="mr-2 h-5 w-5" />
                     Profit History
                   </span>
-                  <Button 
-                    onClick={handleRefresh}
-                    variant="outline"
-                    size="sm"
-                    disabled={profitLoading}
-                    className="ml-auto"
-                  >
-                    {profitLoading ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Refresh
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex items-center space-x-2">
+                    <Select value={profitTimeView} onValueChange={(value: 'daily' | 'weekly' | 'monthly') => setProfitTimeView(value)}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      onClick={handleRefresh}
+                      variant="outline"
+                      size="sm"
+                      disabled={profitLoading}
+                    >
+                      {profitLoading ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Refresh
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </CardTitle>
                 <CardDescription>
                   Track your cumulative realized profits over time
@@ -509,14 +579,10 @@ export default function Dashboard() {
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={(() => {
-                        // Sort profit data by date chronologically before displaying
-                        const sortedData = [...profitData.profit].sort((a, b) => {
-                          const dateA = new Date(a.DATE);
-                          const dateB = new Date(b.DATE);
-                          return dateA.getTime() - dateB.getTime();
-                        });
+                        // Aggregate profit data by selected time period
+                        const aggregatedData = aggregateDataByPeriod(profitData.profit, profitTimeView);
                         
-                        return sortedData.map((item: any) => ({
+                        return aggregatedData.map((item: any) => ({
                           ...item,
                           PROFIT: parseFloat(item.PROFIT || 0)
                         }));
