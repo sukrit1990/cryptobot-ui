@@ -518,10 +518,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("Session destroy error:", err);
             return res.status(500).json({ message: "Failed to sign out" });
           }
-          res.json({ message: "Signed out successfully" });
+          // Redirect to home page after successful logout
+          res.redirect('/');
         });
       } else {
-        res.json({ message: "Already signed out" });
+        // Redirect to home page if already signed out
+        res.redirect('/');
       }
     } catch (error) {
       console.error("Sign out error:", error);
