@@ -361,6 +361,36 @@ export default function Settings() {
     },
   });
 
+  // Delete account mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", "/api/delete-account");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to delete account");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account Deleted",
+        description: "Your account has been permanently deleted. Redirecting to home page...",
+      });
+      
+      // Redirect to home page after a short delay
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2000);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete account. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Cancel subscription mutation
   const cancelSubscriptionMutation = useMutation({
     mutationFn: async () => {
@@ -901,16 +931,13 @@ export default function Settings() {
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => {
-                          // deleteAccountMutation.mutate();
-                          toast({
-                            title: "Account deletion not implemented",
-                            description: "Please contact support to delete your account.",
-                            variant: "destructive",
-                          });
+                          setShowDeleteDialog(false);
+                          deleteAccountMutation.mutate();
                         }}
                         className="bg-red-600 hover:bg-red-700"
+                        disabled={deleteAccountMutation.isPending}
                       >
-                        Delete Account
+                        {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
