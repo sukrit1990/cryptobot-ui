@@ -43,7 +43,7 @@ Preferred communication style: Simple, everyday language.
 - **Gemini Exchange API**: For portfolio data fetching, real-time tracking, and credential validation.
 - **Stripe**: For payment processing, subscription management, and metered billing using Meter Events API.
 - **CryptoBot API**: External service for user registration validation and realized trading profit visualization.
-- **SendGrid**: For reliable email delivery, specifically for OTP verification.
+- **SendGrid**: For reliable email delivery, specifically for OTP verification. Configured with sender email sukrit1990@gmail.com.
 
 ### Technical Dependencies
 - **@neondatabase/serverless**: PostgreSQL database connectivity.
@@ -56,3 +56,24 @@ Preferred communication style: Simple, everyday language.
 - **react-hook-form**: Form state management.
 - **zod**: Runtime type validation.
 - **tailwindcss**: Utility-first CSS framework.
+
+## Recent Changes
+
+### SendGrid Configuration Update (August 2, 2025)
+- Updated sender email address from sukrit.raghuvanshi1990@gmail.com to sukrit1990@gmail.com
+- Maintained SENDGRID_API_KEY environment variable for API authentication
+- Email service configured for both development (console logging) and production (SendGrid) modes
+
+### Dashboard Chart Enhancements (August 2, 2025)
+- Added time period view options (Daily, Weekly, Monthly) to both Portfolio Performance and Realized Profit charts
+- Implemented data aggregation functionality to group data by selected time periods
+- Fixed date synchronization between "Total Realized Profit" tile and chart with proper chronological sorting
+- Enhanced charts with dropdown selectors for dynamic time view switching
+
+### Meter Events API Access Restriction (July 31, 2025)
+- Restricted Stripe meter events API calls to only Daily Automated Usage Reporting (2 AM daily)
+- Disabled manual meter event creation in `/api/report-usage`, `/api/test-meter-event`, and `/api/test-user-meter-event` endpoints
+- Disabled manual daily usage reporting trigger `/api/report-daily-usage` 
+- All manual endpoints now return informational messages explaining automated-only policy
+- Meter events are exclusively created through the automated background job for billing accuracy
+- Enhanced system to prevent accidental duplicate or manual billing events

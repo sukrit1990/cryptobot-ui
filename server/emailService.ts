@@ -28,7 +28,7 @@ export async function sendOtpEmail(email: string, otpCode: string, type: 'verifi
   
   const emailData = {
     to: email,
-    from: 'sukrit.raghuvanshi1990@gmail.com', // Verified sender email
+    from: 'sukrit1990@gmail.com', // Verified sender email
     subject: isPasswordReset ? 'Reset your CryptoInvest Pro password' : 'Verify your CryptoInvest Pro account',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
