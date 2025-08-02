@@ -99,7 +99,9 @@ Preferred communication style: Simple, everyday language.
 - Meter events are exclusively created through the automated background job for billing accuracy
 - Enhanced system to prevent accidental duplicate or manual billing events
 
-### Logout Functionality Fix (August 2, 2025)
-- Fixed logout route mismatch: changed `/api/signout` POST to `/api/logout` GET
-- Improved session destruction with proper error handling
-- Ensured logout functionality works correctly across all authenticated pages
+### Account Management & Logout Functionality (August 2, 2025)
+- Implemented complete delete account functionality using CryptoBot API with proper authentication headers
+- Added DELETE /api/delete-account endpoint that cancels Stripe subscriptions and destroys user sessions
+- Fixed dual logout endpoints: POST /api/signout for dashboard and GET /api/logout for settings
+- Both logout methods now properly destroy sessions and redirect users to landing page
+- Delete account feature integrates with external CryptoBot API and handles Stripe subscription cleanup
