@@ -646,7 +646,7 @@ export default function Settings() {
                         <p className="font-medium text-green-800 text-sm sm:text-base">Active Subscription</p>
                         <p className="text-xs sm:text-sm text-green-600">
                           {subscriptionStatus.trialEndsAt ? (
-                            <>Trial ends on {new Date(subscriptionStatus.trialEndsAt).toLocaleDateString()}</>
+                            <>Trial ends on {new Date(subscriptionStatus.trialEndsAt * 1000).toLocaleDateString()}</>
                           ) : (
                             "Metered billing is active"
                           )}
