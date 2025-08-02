@@ -155,12 +155,22 @@ export default function Dashboard() {
                 Welcome back!
               </span>
               <Button 
+                onClick={() => window.location.href = '/settings'}
+                variant="outline"
+                size="sm"
+                className="text-xs sm:text-sm"
+              >
+                <span className="hidden sm:inline">Settings</span>
+                <span className="sm:hidden">⚙️</span>
+              </Button>
+              <Button 
                 onClick={handleSignOut}
                 variant="outline"
                 size="sm"
                 className="text-xs sm:text-sm"
               >
-                Sign Out
+                <span className="hidden sm:inline">Sign Out</span>
+                <span className="sm:hidden">↗️</span>
               </Button>
             </div>
           </div>
@@ -168,10 +178,10 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-8">
         {/* Tabs */}
         <Tabs defaultValue="portfolio" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6 sm:mb-8">
+          <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-8">
             <TabsTrigger value="portfolio" className="flex items-center text-xs sm:text-sm">
               <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Portfolio Performance</span>
@@ -185,13 +195,13 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="portfolio">
-            <div className="mb-6 sm:mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Portfolio Overview</h2>
+            <div className="mb-4 sm:mb-8">
+              <h2 className="text-xl sm:text-3xl font-bold text-gray-900 mb-2">Portfolio Overview</h2>
               <p className="text-sm sm:text-base text-gray-600">Track your cryptocurrency investment performance</p>
             </div>
 
         {/* Portfolio Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-8">
           {/* Invested Value */}
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -201,7 +211,7 @@ export default function Dashboard() {
               <DollarSign className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold text-gray-900">
+              <div className="text-lg sm:text-2xl font-bold text-gray-900">
                 {portfolio.investedValue > 0 ? formatCurrency(portfolio.investedValue) : "Awaiting API data..."}
               </div>
               <p className="text-xs text-gray-500 mt-1">
@@ -219,7 +229,7 @@ export default function Dashboard() {
               <BarChart3 className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold text-gray-900">
+              <div className="text-lg sm:text-2xl font-bold text-gray-900">
                 {portfolio.currentValue > 0 ? formatCurrency(portfolio.currentValue) : "Awaiting API data..."}
               </div>
               <p className="text-xs text-gray-500 mt-1">
@@ -241,7 +251,7 @@ export default function Dashboard() {
               )}
             </CardHeader>
             <CardContent>
-              <div className={`text-xl sm:text-2xl font-bold ${portfolio.returns >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-lg sm:text-2xl font-bold ${portfolio.returns >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {portfolio.returns !== 0 ? formatCurrency(portfolio.returns) : "Awaiting API data..."}
               </div>
               <p className={`text-xs mt-1 ${portfolio.returnsPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -261,7 +271,7 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center space-x-2">
                 <Select value={portfolioTimeView} onValueChange={(value: 'daily' | 'weekly' | 'monthly') => setPortfolioTimeView(value)}>
-                  <SelectTrigger className="w-24 sm:w-32 text-xs sm:text-sm">
+                  <SelectTrigger className="w-20 sm:w-32 text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -299,14 +309,14 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {historyLoading ? (
-              <div className="h-80 flex items-center justify-center">
+              <div className="h-48 sm:h-80 flex items-center justify-center">
                 <div className="text-center">
-                  <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
-                  <p className="text-gray-500">Loading portfolio data...</p>
+                  <RefreshCw className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mx-auto mb-2 text-blue-600" />
+                  <p className="text-sm sm:text-base text-gray-500">Loading portfolio data...</p>
                 </div>
               </div>
             ) : chartData.length > 0 ? (
-              <div className="h-80">
+              <div className="h-48 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -353,11 +363,11 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-80 flex items-center justify-center">
+              <div className="h-48 sm:h-80 flex items-center justify-center">
                 <div className="text-center">
-                  <BarChart3 className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-500 text-lg font-medium">No portfolio data available</p>
-                  <p className="text-gray-400 text-sm mt-2">Portfolio data will appear once your automated investment starts generating history</p>
+                  <BarChart3 className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-gray-500 text-base sm:text-lg font-medium">No portfolio data available</p>
+                  <p className="text-gray-400 text-xs sm:text-sm mt-2">Portfolio data will appear once your automated investment starts generating history</p>
                   <p className="text-gray-400 text-xs mt-1">Enable automated investing in Settings to begin tracking performance</p>
                 </div>
               </div>
@@ -367,13 +377,13 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="profit">
-            <div className="mb-6 sm:mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Realized Profit</h2>
+            <div className="mb-4 sm:mb-8">
+              <h2 className="text-xl sm:text-3xl font-bold text-gray-900 mb-2">Realized Profit</h2>
               <p className="text-sm sm:text-base text-gray-600">Track your cryptocurrency trading profits over time</p>
             </div>
 
             {/* Profit Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
               {/* Total Profit */}
               <Card className="shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -383,7 +393,7 @@ export default function Dashboard() {
                   <PiggyBank className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-xl sm:text-2xl font-bold text-gray-900">
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900">
                     {(() => {
                       if (profitData && profitData.profit?.length > 0) {
                         // Sort profit data by date first to get the actual latest entry
