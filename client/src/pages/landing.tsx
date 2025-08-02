@@ -290,8 +290,8 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-md w-full space-y-6 sm:space-y-8">
+    <div className="min-h-screen flex items-center justify-center py-4 sm:py-12 px-3 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="max-w-md w-full space-y-4 sm:space-y-8">
         {/* Logo and Header */}
         <div className="text-center">
           <div className="mx-auto h-12 w-12 sm:h-16 sm:w-16 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center">
@@ -317,7 +317,7 @@ export default function Landing() {
                 <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <FormField
                         control={form.control}
                         name="firstName"
@@ -360,7 +360,7 @@ export default function Landing() {
                       )}
                     />
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <FormField
                         control={form.control}
                         name="password"
@@ -389,7 +389,7 @@ export default function Landing() {
                       />
                     </div>
 
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 space-y-3">
                       <h4 className="font-medium text-blue-900 flex items-center">
                         <Shield className="mr-2" size={16} />
                         Gemini API Credentials

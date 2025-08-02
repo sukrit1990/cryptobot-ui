@@ -35,12 +35,12 @@ export default function Settings() {
 
   if (userLoading) {
     return (
-      <div className="p-4 sm:p-8">
-        <div className="mb-8">
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-96" />
+      <div className="p-3 sm:p-8">
+        <div className="mb-4 sm:mb-8">
+          <Skeleton className="h-6 sm:h-8 w-32 sm:w-48 mb-2" />
+          <Skeleton className="h-4 w-64 sm:w-96" />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-8">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
               <CardHeader>
@@ -60,7 +60,7 @@ export default function Settings() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-3 sm:py-4">
             <div className="flex items-center space-x-2 sm:space-x-3">
               <div className="h-7 w-7 sm:h-8 sm:w-8 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
@@ -87,8 +87,8 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-8">
           {/* Basic Settings Card */}
           <Card>
             <CardHeader>

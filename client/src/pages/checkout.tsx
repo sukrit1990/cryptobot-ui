@@ -51,14 +51,14 @@ const CheckoutForm = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
       <PaymentElement />
-      <div className="flex justify-between">
-        <Button type="button" variant="outline" onClick={() => window.history.back()}>
+      <div className="flex flex-col sm:flex-row gap-3 sm:justify-between">
+        <Button type="button" variant="outline" onClick={() => window.history.back()} className="text-sm sm:text-base">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <Button type="submit" disabled={!stripe || isProcessing}>
+        <Button type="submit" disabled={!stripe || isProcessing} className="text-sm sm:text-base">
           {isProcessing ? "Processing..." : "Complete Payment"}
         </Button>
       </div>
@@ -83,19 +83,22 @@ export default function Checkout() {
 
   if (!clientSecret) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
+      <div className="min-h-screen flex items-center justify-center px-3 sm:px-4">
+        <div className="text-center">
+          <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" aria-label="Loading"/>
+          <p className="text-sm text-gray-500 mt-3">Loading payment form...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-6 sm:py-12 px-3 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <Card>
           <CardHeader>
-            <CardTitle>Complete Payment</CardTitle>
-            <CardDescription>Secure payment powered by Stripe</CardDescription>
+            <CardTitle className="text-lg sm:text-xl">Complete Payment</CardTitle>
+            <CardDescription className="text-sm">Secure payment powered by Stripe</CardDescription>
           </CardHeader>
           <CardContent>
             <Elements stripe={stripePromise} options={{ clientSecret }}>
