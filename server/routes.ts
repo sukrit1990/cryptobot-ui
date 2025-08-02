@@ -506,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Sign out endpoint
+  // Sign out endpoint (GET)
   app.get('/api/logout', async (req, res) => {
     try {
       const session = req.session as any;
@@ -524,6 +524,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Redirect to home page if already signed out
         res.redirect('/');
+      }
+    } catch (error) {
+      console.error("Sign out error:", error);
+      res.status(500).json({ message: "Failed to sign out" });
+    }
+  });
+
+  // Sign out endpoint (POST) - for dashboard
+  app.post('/api/signout', async (req, res) => {
+    try {
+      const session = req.session as any;
+      if (session) {
+        session.userId = null;
+        session.isAuthenticated = false;
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("Session destroy error:", err);
+            return res.status(500).json({ message: "Failed to sign out" });
+          }
+          res.json({ message: "Signed out successfully", redirect: "/" });
+        });
+      } else {
+        res.json({ message: "Already signed out", redirect: "/" });
       }
     } catch (error) {
       console.error("Sign out error:", error);

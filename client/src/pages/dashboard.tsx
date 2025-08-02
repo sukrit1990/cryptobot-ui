@@ -63,10 +63,24 @@ export default function Dashboard() {
     }
   }, [historyData]);
 
-  const handleSignOut = () => {
-    // Clear session and redirect
-    fetch('/api/signout', { method: 'POST' });
-    window.location.reload();
+  const handleSignOut = async () => {
+    try {
+      const response = await fetch('/api/signout', { method: 'POST' });
+      const result = await response.json();
+      
+      if (response.ok) {
+        // Redirect to landing page
+        window.location.href = '/';
+      } else {
+        console.error("Sign out failed:", result.message);
+        // Force redirect anyway
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error("Sign out error:", error);
+      // Force redirect on error
+      window.location.href = '/';
+    }
   };
 
   const handleRefresh = () => {
