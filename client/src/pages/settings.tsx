@@ -856,12 +856,35 @@ export default function Settings() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Danger Zone */}
+          <Card className="border-red-200">
+            <CardHeader>
+              <CardTitle className="flex items-center text-base sm:text-lg text-red-700">
+                <Shield className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                Danger Zone
+              </CardTitle>
+              <CardDescription className="text-red-600">
+                Irreversible and destructive actions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="p-3 sm:p-4 border border-red-200 rounded-lg bg-red-50">
+                <h4 className="font-medium text-red-800 mb-2 text-sm sm:text-base">Delete Account</h4>
+                <p className="text-xs sm:text-sm text-red-600 mb-4">
+                  Once you delete your account, there is no going back. This will permanently delete your account,
+                  cancel your subscription, and remove all your data.
+                </p>
                 
                 <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                   <AlertDialogTrigger asChild>
                     <Button 
                       variant="destructive" 
-                      className="w-full text-xs sm:text-sm"
+                      size="sm"
+                      className="text-xs sm:text-sm"
                     >
                       Delete Account
                     </Button>
