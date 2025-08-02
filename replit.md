@@ -59,6 +59,10 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Stripe Price ID Update (August 2, 2025)
+- Updated Stripe price ID from price_1RqEaqAU0aPHWB2SC3FlYezV to price_1RrVKkAU0aPHWB2SrdRNnBVm
+- Maintained metered billing configuration for subscription management
+
 ### SendGrid Configuration Update (August 2, 2025)
 - Updated sender email address from sukrit.raghuvanshi1990@gmail.com to sukrit1990@gmail.com
 - Maintained SENDGRID_API_KEY environment variable for API authentication
