@@ -860,12 +860,12 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Danger Zone */}
+          {/* Account Management */}
           <Card className="border-red-200">
             <CardHeader>
               <CardTitle className="flex items-center text-base sm:text-lg text-red-700">
                 <Shield className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                Danger Zone
+                Account Management
               </CardTitle>
               <CardDescription className="text-red-600">
                 Irreversible and destructive actions

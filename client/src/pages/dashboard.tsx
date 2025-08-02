@@ -291,13 +291,11 @@ export default function Dashboard() {
                     <>
                       <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                       <span className="hidden sm:inline">Loading...</span>
-                      <span className="sm:hidden">⏳</span>
                     </>
                   ) : (
                     <>
                       <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       <span className="hidden sm:inline">Refresh</span>
-                      <span className="sm:hidden">🔄</span>
                     </>
                   )}
                 </Button>
@@ -570,13 +568,11 @@ export default function Dashboard() {
                         <>
                           <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                           <span className="hidden sm:inline">Loading...</span>
-                          <span className="sm:hidden">⏳</span>
                         </>
                       ) : (
                         <>
                           <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                           <span className="hidden sm:inline">Refresh</span>
-                          <span className="sm:hidden">🔄</span>
                         </>
                       )}
                     </Button>
