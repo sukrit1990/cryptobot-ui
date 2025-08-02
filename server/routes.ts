@@ -507,13 +507,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Sign out endpoint
-  app.post('/api/signout', async (req, res) => {
+  app.get('/api/logout', async (req, res) => {
     try {
-      (req.session as any).userId = null;
-      (req.session as any).isAuthenticated = false;
-      req.session.destroy(() => {
-        res.json({ message: "Signed out successfully" });
-      });
+      const session = req.session as any;
+      if (session) {
+        session.userId = null;
+        session.isAuthenticated = false;
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("Session destroy error:", err);
+            return res.status(500).json({ message: "Failed to sign out" });
+          }
+          res.json({ message: "Signed out successfully" });
+        });
+      } else {
+        res.json({ message: "Already signed out" });
+      }
     } catch (error) {
       console.error("Sign out error:", error);
       res.status(500).json({ message: "Failed to sign out" });
