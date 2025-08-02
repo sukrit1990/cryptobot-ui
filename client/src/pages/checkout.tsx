@@ -9,7 +9,7 @@ import { ArrowLeft } from "lucide-react";
 
 // Make sure to call `loadStripe` outside of a component's render to avoid
 // recreating the `Stripe` object on every render.
-const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_51RnfLYAU0aPHWB2SMsCnGHILlcH06tWUUMg98VEVbpJ8KezPduuM8Z38icXto6tn928MdqlnwFxJiycTmt81h0PD00lNOyG8Bs';
+const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_live_51RnfLYAU0aPHWB2SOWvibYhS7ByCZ3AD3byWOsgDPEnkUOPeEqCJAkCDOQlarINjK99pRLOabaZaLxvY08hSW9Ju00kUc2razq';
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 const CheckoutForm = () => {

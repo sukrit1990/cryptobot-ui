@@ -59,8 +59,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### Stripe Price ID Update (August 2, 2025)
+### Stripe Configuration Updates (August 2, 2025)
 - Updated Stripe price ID from price_1RqEaqAU0aPHWB2SC3FlYezV to price_1RrVKkAU0aPHWB2SrdRNnBVm
+- Updated Stripe publishable key to live key: pk_live_51RnfLYAU0aPHWB2SOWvibYhS7ByCZ3AD3byWOsgDPEnkUOPeEqCJAkCDOQlarINjK99pRLOabaZaLxvY08hSW9Ju00kUc2razq
 - Maintained metered billing configuration for subscription management
 
 ### SendGrid Configuration Update (August 2, 2025)
