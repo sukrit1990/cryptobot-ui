@@ -143,21 +143,22 @@ export default function Dashboard() {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
-                <BarChart3 className="text-white" size={20} />
+          <div className="flex justify-between items-center py-3 sm:py-4">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="h-7 w-7 sm:h-8 sm:w-8 bg-gradient-to-br from-primary to-blue-600 rounded-lg flex items-center justify-center">
+                <BarChart3 className="text-white" size={16} />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">CryptoInvest Pro</h1>
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900">CryptoInvest Pro</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <span className="hidden sm:inline text-sm text-gray-600">
                 Welcome back!
               </span>
               <Button 
                 onClick={handleSignOut}
                 variant="outline"
                 size="sm"
+                className="text-xs sm:text-sm"
               >
                 Sign Out
               </Button>
@@ -167,28 +168,30 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Tabs */}
         <Tabs defaultValue="portfolio" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
-            <TabsTrigger value="portfolio" className="flex items-center">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Portfolio Performance
+          <TabsList className="grid w-full grid-cols-2 mb-6 sm:mb-8">
+            <TabsTrigger value="portfolio" className="flex items-center text-xs sm:text-sm">
+              <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Portfolio Performance</span>
+              <span className="sm:hidden">Portfolio</span>
             </TabsTrigger>
-            <TabsTrigger value="profit" className="flex items-center">
-              <PiggyBank className="w-4 h-4 mr-2" />
-              Realized Profit
+            <TabsTrigger value="profit" className="flex items-center text-xs sm:text-sm">
+              <PiggyBank className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Realized Profit</span>
+              <span className="sm:hidden">Profit</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="portfolio">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Portfolio Overview</h2>
-              <p className="text-gray-600">Track your cryptocurrency investment performance</p>
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Portfolio Overview</h2>
+              <p className="text-sm sm:text-base text-gray-600">Track your cryptocurrency investment performance</p>
             </div>
 
         {/* Portfolio Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {/* Invested Value */}
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -198,7 +201,7 @@ export default function Dashboard() {
               <DollarSign className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">
                 {portfolio.investedValue > 0 ? formatCurrency(portfolio.investedValue) : "Awaiting API data..."}
               </div>
               <p className="text-xs text-gray-500 mt-1">
@@ -216,7 +219,7 @@ export default function Dashboard() {
               <BarChart3 className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">
                 {portfolio.currentValue > 0 ? formatCurrency(portfolio.currentValue) : "Awaiting API data..."}
               </div>
               <p className="text-xs text-gray-500 mt-1">
@@ -238,7 +241,7 @@ export default function Dashboard() {
               )}
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${portfolio.returns >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-xl sm:text-2xl font-bold ${portfolio.returns >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {portfolio.returns !== 0 ? formatCurrency(portfolio.returns) : "Awaiting API data..."}
               </div>
               <p className={`text-xs mt-1 ${portfolio.returnsPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -251,14 +254,14 @@ export default function Dashboard() {
         {/* Portfolio Performance Chart */}
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
               <div className="flex items-center space-x-2">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
-                <span>Portfolio Performance</span>
+                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                <span className="text-sm sm:text-base">Portfolio Performance</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Select value={portfolioTimeView} onValueChange={(value: 'daily' | 'weekly' | 'monthly') => setPortfolioTimeView(value)}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-24 sm:w-32 text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -272,16 +275,19 @@ export default function Dashboard() {
                   disabled={historyLoading}
                   variant="outline"
                   size="sm"
+                  className="text-xs sm:text-sm"
                 >
                   {historyLoading ? (
                     <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Loading...
+                      <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                      <span className="hidden sm:inline">Loading...</span>
+                      <span className="sm:hidden">⏳</span>
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Refresh
+                      <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="hidden sm:inline">Refresh</span>
+                      <span className="sm:hidden">🔄</span>
                     </>
                   )}
                 </Button>
@@ -361,13 +367,13 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="profit">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Realized Profit</h2>
-              <p className="text-gray-600">Track your cryptocurrency trading profits over time</p>
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Realized Profit</h2>
+              <p className="text-sm sm:text-base text-gray-600">Track your cryptocurrency trading profits over time</p>
             </div>
 
             {/* Profit Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
               {/* Total Profit */}
               <Card className="shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -377,7 +383,7 @@ export default function Dashboard() {
                   <PiggyBank className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900">
                     {(() => {
                       if (profitData && profitData.profit?.length > 0) {
                         // Sort profit data by date first to get the actual latest entry
@@ -419,7 +425,7 @@ export default function Dashboard() {
                   <TrendingUp className="h-4 w-4 text-blue-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900">
                     {(() => {
                       if (profitData && profitData.profit?.length > 0) {
                         // Sort profit data by date first to get accurate latest entry

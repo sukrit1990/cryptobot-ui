@@ -290,14 +290,14 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="max-w-md w-full space-y-6 sm:space-y-8">
         {/* Logo and Header */}
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center">
-            <ChartLine className="text-white text-2xl" size={32} />
+          <div className="mx-auto h-12 w-12 sm:h-16 sm:w-16 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center">
+            <ChartLine className="text-white" size={24} />
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">CryptoInvest Pro</h2>
+          <h2 className="mt-4 sm:mt-6 text-2xl sm:text-3xl font-bold text-gray-900">CryptoInvest Pro</h2>
           <p className="mt-2 text-sm text-gray-600">Your strategy. On autopilot.</p>
         </div>
 
@@ -311,13 +311,13 @@ export default function Landing() {
             {!showOtpVerification ? (
               <Card className="shadow-lg">
                 <CardHeader className="text-center">
-                  <CardTitle className="text-2xl">Create Account</CardTitle>
-                  <CardDescription>Start your automated investment journey</CardDescription>
+                  <CardTitle className="text-xl sm:text-2xl">Create Account</CardTitle>
+                  <CardDescription className="text-sm">Start your automated investment journey</CardDescription>
                 </CardHeader>
                 <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
                         name="firstName"
@@ -360,7 +360,7 @@ export default function Landing() {
                       )}
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
                         name="password"
