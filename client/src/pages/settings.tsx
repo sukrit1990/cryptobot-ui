@@ -257,25 +257,39 @@ export default function Settings() {
   });
 
   // Fetch account state from CryptoBot API
-  const { data: accountState, isLoading: accountLoading } = useQuery({
+  const { data: accountState, isLoading: accountLoading } = useQuery<{state: string}>({
     queryKey: ["/api/account/state"],
     enabled: !!user, // Only fetch when user is available
   });
 
   // Fetch subscription status
-  const { data: subscriptionStatus, isLoading: subscriptionLoading } = useQuery({
+  const { data: subscriptionStatus, isLoading: subscriptionLoading } = useQuery<{
+    hasSubscription: boolean;
+    hasPaymentMethod: boolean;
+    card?: {
+      brand: string;
+      last4: string;
+    };
+    trialEndsAt?: string;
+  }>({
     queryKey: ["/api/subscription-status"],
     enabled: !!user,
   });
 
   // Fetch payment method details
-  const { data: paymentMethod } = useQuery({
+  const { data: paymentMethod } = useQuery<{
+    hasPaymentMethod: boolean;
+    card?: {
+      brand: string;
+      last4: string;
+    };
+  }>({
     queryKey: ["/api/payment-method"],
     enabled: !!user && !!subscriptionStatus?.hasSubscription,
   });
 
   // Fetch current invested amount from CryptoBot API
-  const { data: fundData, isLoading: fundLoading } = useQuery({
+  const { data: fundData, isLoading: fundLoading } = useQuery<{fund: number}>({
     queryKey: ["/api/account/fund"],
     enabled: !!user,
   });
@@ -717,7 +731,7 @@ export default function Settings() {
                         )}
                         {subscriptionStatus?.trialEndsAt && (
                           <p className="text-sm text-blue-700 mt-1">
-                            Free trial until {new Date(subscriptionStatus.trialEndsAt * 1000).toLocaleDateString()}
+                            Free trial until {new Date(parseInt(subscriptionStatus.trialEndsAt) * 1000).toLocaleDateString()}
                           </p>
                         )}
                       </div>
