@@ -1994,6 +1994,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test Stripe connection endpoint
+  app.get('/api/test-stripe-connection', async (req, res) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ 
+          success: false, 
+          error: "Stripe not configured",
+          hasSecretKey: !!process.env.STRIPE_SECRET_KEY 
+        });
+      }
+
+      // Test Stripe connection by listing a single product
+      const products = await stripe.products.list({ limit: 1 });
+      
+      res.json({ 
+        success: true, 
+        message: "Stripe connection successful",
+        apiVersion: "2025-06-30.basil",
+        hasSecretKey: !!process.env.STRIPE_SECRET_KEY,
+        testResult: "Connected to Stripe API",
+        productCount: products.data.length
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        hasSecretKey: !!process.env.STRIPE_SECRET_KEY
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
