@@ -543,14 +543,14 @@ export default function Dashboard() {
             {/* Profit Chart */}
             <Card className="shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center">
-                    <BarChart3 className="mr-2 h-5 w-5" />
-                    Profit History
-                  </span>
+                <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                  <div className="flex items-center space-x-2">
+                    <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                    <span className="text-sm sm:text-base">Profit History</span>
+                  </div>
                   <div className="flex items-center space-x-2">
                     <Select value={profitTimeView} onValueChange={(value: 'daily' | 'weekly' | 'monthly') => setProfitTimeView(value)}>
-                      <SelectTrigger className="w-32">
+                      <SelectTrigger className="w-20 sm:w-32 text-xs sm:text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -564,35 +564,38 @@ export default function Dashboard() {
                       variant="outline"
                       size="sm"
                       disabled={profitLoading}
+                      className="text-xs sm:text-sm"
                     >
                       {profitLoading ? (
                         <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Loading...
+                          <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                          <span className="hidden sm:inline">Loading...</span>
+                          <span className="sm:hidden">⏳</span>
                         </>
                       ) : (
                         <>
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          Refresh
+                          <RefreshCw className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                          <span className="hidden sm:inline">Refresh</span>
+                          <span className="sm:hidden">🔄</span>
                         </>
                       )}
                     </Button>
                   </div>
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
                   Track your cumulative realized profits over time
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {profitLoading ? (
-                  <div className="h-80 flex items-center justify-center">
+                  <div className="h-48 sm:h-80 flex items-center justify-center">
                     <div className="text-center">
-                      <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-green-600" />
-                      <p className="text-gray-500">Loading profit data...</p>
+                      <RefreshCw className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mx-auto mb-2 text-green-600" />
+                      <p className="text-sm sm:text-base text-gray-500">Loading profit data...</p>
                     </div>
                   </div>
                 ) : profitData && profitData.profit?.length > 0 ? (
-                  <div className="h-80">
+                  <div className="h-48 sm:h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={(() => {
                         // Aggregate profit data by selected time period
@@ -606,11 +609,11 @@ export default function Dashboard() {
                         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                         <XAxis 
                           dataKey="DATE" 
-                          tick={{ fontSize: 12 }}
+                          tick={{ fontSize: 10 }}
                           stroke="#6B7280"
                         />
                         <YAxis 
-                          tick={{ fontSize: 12 }}
+                          tick={{ fontSize: 10 }}
                           stroke="#6B7280"
                           tickFormatter={(value) => `$${value.toLocaleString()}`}
                         />
@@ -635,11 +638,11 @@ export default function Dashboard() {
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="h-80 flex items-center justify-center">
+                  <div className="h-48 sm:h-80 flex items-center justify-center">
                     <div className="text-center">
-                      <PiggyBank className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-gray-500 text-lg font-medium">No profit data available</p>
-                      <p className="text-gray-400 text-sm mt-2">Your trading profits will appear here once data is available</p>
+                      <PiggyBank className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-gray-500 text-base sm:text-lg font-medium">No profit data available</p>
+                      <p className="text-gray-400 text-xs sm:text-sm mt-2">Your trading profits will appear here once data is available</p>
                     </div>
                   </div>
                 )}
