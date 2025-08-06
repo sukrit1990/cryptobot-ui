@@ -43,11 +43,9 @@ function Router() {
 
   return (
     <Switch>
+      <Route path="/gemini-guide" component={GeminiGuide} />
       {!isAuthenticated ? (
-        <>
-          <Route path="/gemini-guide" component={GeminiGuide} />
-          <Route component={Landing} />
-        </>
+        <Route component={Landing} />
       ) : (
         <Route path="*" component={() => <AuthenticatedApp user={user} />} />
       )}
