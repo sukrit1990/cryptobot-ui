@@ -14,10 +14,10 @@ export default function GeminiGuide() {
       {/* Header */}
       <header className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-8 px-6 shadow-lg">
         <div className="max-w-4xl mx-auto">
-          <Link href="/settings">
+          <Link href="/">
             <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Settings
+              Back to Sign Up
             </Button>
           </Link>
           <h1 className="text-4xl font-bold mb-2">Gemini User Guide</h1>
@@ -173,14 +173,9 @@ export default function GeminiGuide() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/settings">
+              <Link href="/">
                 <Button className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white">
-                  Return to Settings
-                </Button>
-              </Link>
-              <Link href="/dashboard">
-                <Button variant="outline" className="w-full sm:w-auto">
-                  Go to Dashboard
+                  Back to Sign Up
                 </Button>
               </Link>
             </div>

@@ -397,8 +397,6 @@ export default function Landing() {
                       <p className="text-xs text-blue-700">
                         Need API credentials? <a 
                           href="/gemini-guide" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
                           className="underline hover:text-blue-900 font-medium"
                         >
                           Learn how to create Gemini API keys →

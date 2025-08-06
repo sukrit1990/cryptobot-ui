@@ -105,3 +105,10 @@ Preferred communication style: Simple, everyday language.
 - Fixed dual logout endpoints: POST /api/signout for dashboard and GET /api/logout for settings
 - Both logout methods now properly destroy sessions and redirect users to landing page
 - Delete account feature integrates with external CryptoBot API and handles Stripe subscription cleanup
+
+### Gemini API Guide Implementation (August 6, 2025)
+- Created comprehensive Gemini API guide page (/gemini-guide) with step-by-step instructions
+- Added visual screenshots for account creation and API key generation process
+- Integrated guide into pre-login routing - accessible without authentication
+- Updated "Learn how to create Gemini API keys" link on sign-up page to point to new guide
+- Guide includes mobile-responsive design with proper navigation back to sign-up page
