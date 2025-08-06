@@ -10,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
 import Subscribe from "@/pages/subscribe";
 import Checkout from "@/pages/checkout";
+import GeminiGuide from "@/pages/gemini-guide";
 
 function AuthenticatedApp({ user }: { user: any }) {
   return (
@@ -19,6 +20,7 @@ function AuthenticatedApp({ user }: { user: any }) {
         <Route path="/settings" component={Settings} />
         <Route path="/subscribe" component={Subscribe} />
         <Route path="/checkout" component={Checkout} />
+        <Route path="/gemini-guide" component={GeminiGuide} />
         <Route component={NotFound} />
       </Switch>
     </div>
