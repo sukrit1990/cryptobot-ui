@@ -33,6 +33,7 @@ export default function AdminDashboard() {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showFundDialog, setShowFundDialog] = useState(false);
+  const [userStatuses, setUserStatuses] = useState<{[userId: string]: any}>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -180,14 +181,34 @@ export default function AdminDashboard() {
   const getUserStatusMutation = useMutation({
     mutationFn: async (userId: string) => {
       const response = await apiRequest("GET", `/api/admin/users/${userId}/status`);
-      return response;
+      return { ...response, userId };
     },
     onSuccess: (data: any) => {
+      const tradingState = data.accountState?.state;
+      const tradingStatus = tradingState === 'A' ? 'Active' : tradingState === 'I' ? 'Inactive' : 'Unknown';
+      const fundAmount = data.fundData?.fund || 'N/A';
+      
+      // Store the status in local state for display
+      setUserStatuses(prev => ({
+        ...prev,
+        [data.userId]: {
+          tradingState: tradingState,
+          tradingStatus: tradingStatus,
+          fundAmount: fundAmount,
+          lastChecked: new Date().toLocaleString()
+        }
+      }));
+      
       toast({
         title: "User Status Retrieved",
-        description: `CryptoBot Status: ${data.accountState ? 'Connected' : 'Disconnected'}, Funds: $${data.fundData?.fund || 'N/A'}`,
+        description: `Trading Status: ${tradingStatus}, Funds: S$${fundAmount}`,
       });
-      console.log('User status:', data);
+      console.log('Detailed user status:', {
+        email: data.userEmail,
+        tradingState: data.accountState?.state,
+        fundData: data.fundData,
+        localSettings: data.localUser
+      });
     },
     onError: (error: any) => {
       toast({
@@ -431,6 +452,7 @@ export default function AdminDashboard() {
                       <TableHead>Email</TableHead>
                       <TableHead>Funds</TableHead>
                       <TableHead>Trading</TableHead>
+                      <TableHead>CryptoBot Status</TableHead>
                       <TableHead>API Keys</TableHead>
                       <TableHead>Subscription</TableHead>
                       <TableHead>Actions</TableHead>
@@ -451,6 +473,23 @@ export default function AdminDashboard() {
                           <Badge variant={user.investmentActive ? "default" : "secondary"}>
                             {user.investmentActive ? "Active" : "Inactive"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {userStatuses[user.id] ? (
+                            <div className="space-y-1">
+                              <Badge variant={userStatuses[user.id].tradingState === 'A' ? "default" : "secondary"}>
+                                {userStatuses[user.id].tradingStatus}
+                              </Badge>
+                              <div className="text-xs text-gray-500">
+                                S${userStatuses[user.id].fundAmount}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {userStatuses[user.id].lastChecked}
+                              </div>
+                            </div>
+                          ) : (
+                            <Badge variant="outline">Check Status</Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant={user.hasGeminiKeys ? "default" : "destructive"}>
