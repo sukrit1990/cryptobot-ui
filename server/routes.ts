@@ -1,7 +1,17 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, updateUserSettingsSchema, verifyOtpSchema } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  updateUserSettingsSchema, 
+  verifyOtpSchema,
+  adminLoginSchema,
+  adminChangePasswordSchema,
+  updateUserAdminSchema,
+  type AdminLogin,
+  type AdminChangePassword,
+  type UpdateUserAdmin,
+} from "@shared/schema";
 import { validateGeminiCredentials, getPortfolioData } from "./gemini";
 import Stripe from "stripe";
 import { z } from "zod";
@@ -2054,6 +2064,307 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Delete account error:", error);
       res.status(500).json({ message: "Failed to delete account: " + error.message });
+    }
+  });
+
+  // ============= ADMIN ROUTES =============
+
+  // Admin authentication middleware
+  const isAdminAuthenticated = (req: any, res: any, next: any) => {
+    const session = req.session as any;
+    if (!session?.adminId || !session?.isAdminAuthenticated) {
+      return res.status(401).json({ message: "Admin authentication required" });
+    }
+    next();
+  };
+
+  // Admin login
+  app.post('/api/admin/login', async (req, res) => {
+    try {
+      const loginData = adminLoginSchema.parse(req.body);
+      
+      const admin = await storage.getAdminByUsername(loginData.username);
+      if (!admin) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Import verifyPassword function
+      const { verifyPassword } = await import("./auth");
+      const isValid = await verifyPassword(loginData.password, admin.password);
+      
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Set admin session
+      (req.session as any).adminId = admin.id;
+      (req.session as any).isAdminAuthenticated = true;
+      (req.session as any).adminUsername = admin.username;
+
+      // Log admin login
+      await storage.logAdminAction({
+        adminId: admin.id.toString(),
+        action: 'LOGIN',
+        details: { timestamp: new Date(), ip: req.ip }
+      });
+
+      res.json({ 
+        message: "Admin logged in successfully",
+        admin: { id: admin.id, username: admin.username }
+      });
+    } catch (error: any) {
+      console.error("Admin login error:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid login data",
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Admin logout
+  app.post('/api/admin/logout', async (req, res) => {
+    const session = req.session as any;
+    if (session?.adminId) {
+      await storage.logAdminAction({
+        adminId: session.adminId.toString(),
+        action: 'LOGOUT',
+        details: { timestamp: new Date() }
+      });
+    }
+
+    req.session.destroy((err: any) => {
+      if (err) {
+        console.error("Admin session destroy error:", err);
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ message: "Admin logged out successfully" });
+    });
+  });
+
+  // Get admin session info
+  app.get('/api/admin/session', (req, res) => {
+    const session = req.session as any;
+    if (session?.adminId && session?.isAdminAuthenticated) {
+      res.json({ 
+        isAuthenticated: true,
+        admin: { 
+          id: session.adminId, 
+          username: session.adminUsername 
+        }
+      });
+    } else {
+      res.status(401).json({ message: "Not authenticated" });
+    }
+  });
+
+  // Get all users (admin only)
+  app.get('/api/admin/users', isAdminAuthenticated, async (req, res) => {
+    try {
+      const users = await storage.getAllUsersForAdmin();
+      
+      // Remove sensitive information from response
+      const safeUsers = users.map(user => ({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        initialFunds: user.initialFunds,
+        investmentActive: user.investmentActive,
+        riskTolerance: user.riskTolerance,
+        stripeCustomerId: user.stripeCustomerId,
+        stripeSubscriptionId: user.stripeSubscriptionId,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        hasGeminiKeys: !!(user.geminiApiKey && user.geminiApiSecret)
+      }));
+
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Update user (admin only)
+  app.patch('/api/admin/users/:userId', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const updates = updateUserAdminSchema.parse(req.body);
+      const session = req.session as any;
+
+      const updatedUser = await storage.updateUserByAdmin(userId, updates);
+
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: session.adminId.toString(),
+        action: 'UPDATE_USER',
+        targetUserId: userId,
+        details: { 
+          updates: updates,
+          timestamp: new Date() 
+        }
+      });
+
+      res.json({ 
+        message: "User updated successfully",
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          investmentActive: updatedUser.investmentActive,
+          hasGeminiKeys: !!(updatedUser.geminiApiKey && updatedUser.geminiApiSecret)
+        }
+      });
+    } catch (error: any) {
+      console.error("Error updating user:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid update data",
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Delete user (admin only)
+  app.delete('/api/admin/users/:userId', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const session = req.session as any;
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Cancel Stripe subscription if exists
+      if (user.stripeSubscriptionId && stripe) {
+        try {
+          await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+          console.log('Stripe subscription cancelled by admin:', user.stripeSubscriptionId);
+        } catch (error) {
+          console.error('Error cancelling Stripe subscription:', error);
+        }
+      }
+
+      // Delete from CryptoBot API
+      if (user.email) {
+        try {
+          const cryptoBotDelete = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/delete?email=${encodeURIComponent(user.email)}`, {
+            method: 'DELETE',
+            headers: {
+              'accept': 'application/json',
+              'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+            }
+          });
+
+          if (!cryptoBotDelete.ok) {
+            console.error('CryptoBot API delete error by admin');
+          }
+        } catch (error) {
+          console.error('Error deleting from CryptoBot API:', error);
+        }
+      }
+
+      // Delete user from local database
+      await storage.deleteUser(userId);
+
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: session.adminId.toString(),
+        action: 'DELETE_USER',
+        targetUserId: userId,
+        details: { 
+          userEmail: user.email,
+          timestamp: new Date() 
+        }
+      });
+
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Get admin logs
+  app.get('/api/admin/logs', isAdminAuthenticated, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const logs = await storage.getRecentAdminLogs(limit);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching admin logs:", error);
+      res.status(500).json({ message: "Failed to fetch logs" });
+    }
+  });
+
+  // Change admin password
+  app.post('/api/admin/change-password', isAdminAuthenticated, async (req, res) => {
+    try {
+      const passwordData = adminChangePasswordSchema.parse(req.body);
+      const session = req.session as any;
+
+      const admin = await storage.getAdminByUsername(session.adminUsername);
+      if (!admin) {
+        return res.status(404).json({ message: "Admin not found" });
+      }
+
+      // Verify current password
+      const { verifyPassword } = await import("./auth");
+      const isCurrentValid = await verifyPassword(passwordData.currentPassword, admin.password);
+      
+      if (!isCurrentValid) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+
+      // Update password
+      await storage.updateAdminPassword(session.adminUsername, passwordData.newPassword);
+
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: session.adminId.toString(),
+        action: 'CHANGE_PASSWORD',
+        details: { timestamp: new Date() }
+      });
+
+      res.json({ message: "Password changed successfully" });
+    } catch (error: any) {
+      console.error("Error changing admin password:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid password data",
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Get Dropbox logs link for specific user (admin only)
+  app.get('/api/admin/users/:userId/logs-link', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Generate Dropbox link using the user's email or ID
+      const dropboxLink = `https://www.dropbox.com/home/Apps/cryptobotgemini%20(1)/cryptobotgemini/${encodeURIComponent(user.email || userId)}`;
+      
+      res.json({ 
+        dropboxLink,
+        userEmail: user.email,
+        userId: user.id
+      });
+    } catch (error) {
+      console.error("Error generating logs link:", error);
+      res.status(500).json({ message: "Failed to generate logs link" });
     }
   });
 

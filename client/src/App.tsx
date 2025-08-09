@@ -11,6 +11,8 @@ import Settings from "@/pages/settings";
 import Subscribe from "@/pages/subscribe";
 import Checkout from "@/pages/checkout";
 import GeminiGuide from "@/pages/gemini-guide";
+import AdminLogin from "@/pages/admin-login";
+import AdminDashboard from "@/pages/admin-dashboard";
 
 function AuthenticatedApp({ user }: { user: any }) {
   return (
@@ -44,6 +46,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/gemini-guide" component={GeminiGuide} />
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin" component={AdminDashboard} />
       {!isAuthenticated ? (
         <Route component={Landing} />
       ) : (

@@ -3,6 +3,8 @@ import {
   portfolios, 
   paymentMethods,
   otpCodes,
+  admins,
+  adminLogs,
   type User, 
   type UpsertUser,
   type Portfolio,
@@ -11,10 +13,15 @@ import {
   type InsertPaymentMethod,
   type UpdateUserSettings,
   type OtpCode,
-  type InsertOtpCode
+  type InsertOtpCode,
+  type Admin,
+  type InsertAdmin,
+  type AdminLog,
+  type InsertAdminLog,
+  type UpdateUserAdmin
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, lt } from "drizzle-orm";
+import { eq, and, lt, desc } from "drizzle-orm";
 import { hashPassword, verifyPassword } from "./auth";
 
 // Interface for storage operations
@@ -47,6 +54,15 @@ export interface IStorage {
   createOtpCode(otpData: InsertOtpCode): Promise<OtpCode>;
   verifyOtpCode(email: string, code: string, type: string): Promise<OtpCode | undefined>;
   deleteExpiredOtpCodes(): Promise<void>;
+  
+  // Admin operations
+  getAdminByUsername(username: string): Promise<Admin | undefined>;
+  createAdmin(adminData: InsertAdmin): Promise<Admin>;
+  updateAdminPassword(username: string, newPassword: string): Promise<Admin>;
+  getAllUsersForAdmin(): Promise<User[]>;
+  updateUserByAdmin(userId: string, updates: UpdateUserAdmin): Promise<User>;
+  logAdminAction(logData: InsertAdminLog): Promise<AdminLog>;
+  getRecentAdminLogs(limit?: number): Promise<AdminLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -306,6 +322,72 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(otpCodes)
       .where(lt(otpCodes.expiresAt, new Date()));
+  }
+
+  // Admin operations
+  async getAdminByUsername(username: string): Promise<Admin | undefined> {
+    const [admin] = await db.select().from(admins).where(eq(admins.username, username));
+    return admin;
+  }
+
+  async createAdmin(adminData: InsertAdmin): Promise<Admin> {
+    const { password, ...otherData } = adminData;
+    const hashedPassword = await hashPassword(password);
+    
+    const [admin] = await db
+      .insert(admins)
+      .values({
+        ...otherData,
+        password: hashedPassword,
+      })
+      .returning();
+    return admin;
+  }
+
+  async updateAdminPassword(username: string, newPassword: string): Promise<Admin> {
+    const hashedPassword = await hashPassword(newPassword);
+    
+    const [admin] = await db
+      .update(admins)
+      .set({
+        password: hashedPassword,
+        updatedAt: new Date(),
+      })
+      .where(eq(admins.username, username))
+      .returning();
+    return admin;
+  }
+
+  async getAllUsersForAdmin(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async updateUserByAdmin(userId: string, updates: UpdateUserAdmin): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async logAdminAction(logData: InsertAdminLog): Promise<AdminLog> {
+    const [log] = await db
+      .insert(adminLogs)
+      .values(logData)
+      .returning();
+    return log;
+  }
+
+  async getRecentAdminLogs(limit: number = 50): Promise<AdminLog[]> {
+    return await db
+      .select()
+      .from(adminLogs)
+      .orderBy(desc(adminLogs.timestamp))
+      .limit(limit);
   }
 }
 
