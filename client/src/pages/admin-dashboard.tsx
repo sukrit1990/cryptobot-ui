@@ -216,23 +216,12 @@ export default function AdminDashboard() {
     },
   });
 
-  // Get logs link mutation
-  const getLogsLinkMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const response = await apiRequest("GET", `/api/admin/users/${userId}/logs-link`);
-      return response;
-    },
-    onSuccess: (data: any) => {
-      window.open(data.dropboxLink, '_blank');
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to open logs",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  // Handle view logs in Dropbox
+  const handleViewLogs = (user: any) => {
+    const cryptoBotId = user.cryptoBotId || user.id;
+    const dropboxUrl = `https://www.dropbox.com/home/Apps/cryptobotgemini%20(1)/cryptobotgemini/${cryptoBotId}`;
+    window.open(dropboxUrl, '_blank');
+  };
 
   // Toggle trading state mutation
   const toggleTradingMutation = useMutation({
@@ -579,7 +568,7 @@ export default function AdminDashboard() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => getLogsLinkMutation.mutate(user.id)}
+                                    onClick={() => handleViewLogs(user)}
                                     data-testid={`button-logs-${user.id}`}
                                   >
                                     <ExternalLink className="h-4 w-4" />
