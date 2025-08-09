@@ -2183,22 +2183,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('CryptoBot accounts fetched successfully:', cryptoBotAccounts);
 
       // Transform CryptoBot data to match frontend expectations
-      // The API returns an array of account objects
-      const safeUsers = Array.isArray(cryptoBotAccounts) ? cryptoBotAccounts.map((account: any, index: number) => ({
-        id: account.email || `account-${index}`, // Use email as ID or fallback to index
-        email: account.email || 'N/A',
-        firstName: account.name?.split(' ')[0] || 'Unknown',
-        lastName: account.name?.split(' ').slice(1).join(' ') || 'User',
-        initialFunds: account.funds || 0,
-        investmentActive: account.state === 'A', // A = Active, I = Inactive
+      // The API returns { accounts: [...], count: n } format
+      const accountsArray = cryptoBotAccounts.accounts || [];
+      const safeUsers = Array.isArray(accountsArray) ? accountsArray.map((account: any, index: number) => ({
+        id: account.EMAIL || `account-${index}`, // Use EMAIL as ID or fallback to index
+        email: account.EMAIL || 'N/A',
+        firstName: account.EMAIL?.split('@')[0] || 'Unknown', // Extract name from email
+        lastName: 'User',
+        initialFunds: parseFloat(account.FUND) || 0,
+        investmentActive: account.STATE === 'A', // A = Active, I = Inactive
         riskTolerance: 'medium', // Default value
         stripeCustomerId: null, // Not available from CryptoBot API
         stripeSubscriptionId: null, // Not available from CryptoBot API
-        createdAt: account.created_at || new Date().toISOString(),
-        updatedAt: account.updated_at || new Date().toISOString(),
-        hasGeminiKeys: !!(account.api_key && account.api_secret)
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        hasGeminiKeys: !!(account.gemini_api_key && account.gemini_api_secret)
       })) : [];
 
+      console.log('Transformed users:', safeUsers);
       res.json(safeUsers);
     } catch (error) {
       console.error("Error fetching users from CryptoBot API:", error);
