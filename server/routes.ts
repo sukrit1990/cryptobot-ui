@@ -2344,6 +2344,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Toggle trading state for user (admin only)
+  app.post('/api/admin/users/:userId/toggle-trading', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const session = req.session as any;
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!user.email) {
+        return res.status(400).json({ message: "User email not found" });
+      }
+
+      // Get current trading state from CryptoBot API
+      const currentStateResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/state?email=${encodeURIComponent(user.email)}`, {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+        }
+      });
+
+      if (!currentStateResponse.ok) {
+        return res.status(500).json({ message: "Failed to get current trading state" });
+      }
+
+      const currentStateData = await currentStateResponse.json();
+      const currentState = currentStateData.state;
+      const newState = currentState === 'A' ? 'I' : 'A'; // Toggle: A=Active, I=Inactive
+
+      // Update trading state in CryptoBot API
+      const updateStateResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/state?email=${encodeURIComponent(user.email)}&new_state=${newState}`, {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+        }
+      });
+
+      if (!updateStateResponse.ok) {
+        return res.status(500).json({ message: "Failed to update trading state in CryptoBot API" });
+      }
+
+      // Also update investment active status in local database to match
+      const investmentActive = newState === 'A';
+      await storage.updateUserByAdmin(userId, { investmentActive });
+
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: session.adminId.toString(),
+        action: 'TOGGLE_TRADING',
+        targetUserId: userId,
+        details: { 
+          userEmail: user.email,
+          previousState: currentState,
+          newState: newState,
+          timestamp: new Date() 
+        }
+      });
+
+      res.json({ 
+        message: `Trading state toggled to ${newState === 'A' ? 'Active' : 'Inactive'}`,
+        newState: newState
+      });
+    } catch (error) {
+      console.error("Error toggling trading state:", error);
+      res.status(500).json({ message: "Failed to toggle trading state" });
+    }
+  });
+
   // Get admin logs
   app.get('/api/admin/logs', isAdminAuthenticated, async (req, res) => {
     try {

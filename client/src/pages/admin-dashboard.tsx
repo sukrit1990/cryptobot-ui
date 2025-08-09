@@ -26,7 +26,8 @@ import {
   Key,
   FileText,
   DollarSign,
-  Activity
+  Activity,
+  ToggleLeft
 } from "lucide-react";
 
 // Component to display CryptoBot status for each user
@@ -234,31 +235,22 @@ export default function AdminDashboard() {
     },
   });
 
-  // Get user status mutation - for quick status checks with toast notifications
-  const getUserStatusMutation = useMutation({
+  // Toggle trading state mutation
+  const toggleTradingMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const response = await apiRequest("GET", `/api/admin/users/${userId}/status`);
-      return response;
+      await apiRequest("POST", `/api/admin/users/${userId}/toggle-trading`);
     },
-    onSuccess: (data: any) => {
-      const tradingState = data.accountState?.state;
-      const tradingStatus = tradingState === 'A' ? 'Active' : tradingState === 'I' ? 'Inactive' : 'Unknown';
-      const fundAmount = data.fundData?.fund || 'N/A';
-      
+    onSuccess: () => {
       toast({
-        title: "User Status Retrieved",
-        description: `Trading Status: ${tradingStatus}, Funds: S$${fundAmount}`,
+        title: "Trading state updated",
+        description: "User trading state has been toggled successfully.",
       });
-      console.log('Detailed user status:', {
-        email: data.userEmail,
-        tradingState: data.accountState?.state,
-        fundData: data.fundData,
-        localSettings: data.localUser
-      });
+      // Invalidate all status queries to refresh the display
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
     },
     onError: (error: any) => {
       toast({
-        title: "Failed to get user status",
+        title: "Failed to toggle trading",
         description: error.message,
         variant: "destructive",
       });
@@ -309,6 +301,10 @@ export default function AdminDashboard() {
       newFund: user.initialFunds || 0,
     });
     setShowFundDialog(true);
+  };
+
+  const handleToggleTrading = (user: any) => {
+    toggleTradingMutation.mutate(user.id);
   };
 
   const onPasswordSubmit = (data: any) => {
@@ -537,14 +533,14 @@ export default function AdminDashboard() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleEditUser(user)}
-                                    data-testid={`button-edit-${user.id}`}
+                                    onClick={() => handleToggleTrading(user)}
+                                    data-testid={`button-trading-${user.id}`}
                                   >
-                                    <Edit className="h-4 w-4" />
+                                    <ToggleLeft className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Edit user settings and API credentials</p>
+                                  <p>Toggle trading state (Active/Inactive)</p>
                                 </TooltipContent>
                               </Tooltip>
                               
@@ -553,14 +549,14 @@ export default function AdminDashboard() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => getUserStatusMutation.mutate(user.id)}
-                                    data-testid={`button-status-${user.id}`}
+                                    onClick={() => handleEditUser(user)}
+                                    data-testid={`button-edit-${user.id}`}
                                   >
-                                    <Activity className="h-4 w-4" />
+                                    <Key className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Check trading status and fund details</p>
+                                  <p>Update API credentials</p>
                                 </TooltipContent>
                               </Tooltip>
                               
