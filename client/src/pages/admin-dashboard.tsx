@@ -41,36 +41,48 @@ function CryptoBotStatusCell({ userId, userEmail }: { userId: string; userEmail:
 
   if (isLoading) {
     return (
-      <div className="space-y-1">
-        <Badge variant="outline">Loading...</Badge>
-        <div className="text-xs text-gray-400">Fetching...</div>
-      </div>
+      <Badge variant="outline">Loading...</Badge>
     );
   }
 
   if (error || !statusData) {
     return (
-      <div className="space-y-1">
-        <Badge variant="destructive">Error</Badge>
-        <div className="text-xs text-gray-400">Failed to load</div>
-      </div>
+      <Badge variant="destructive">Error</Badge>
     );
   }
 
   const tradingState = statusData.accountState?.state;
   const tradingStatus = tradingState === 'A' ? 'Active' : tradingState === 'I' ? 'Inactive' : 'Unknown';
-  const fundAmount = statusData.fundData?.fund || 'N/A';
 
   return (
-    <div className="space-y-1">
-      <Badge variant={tradingState === 'A' ? "default" : "secondary"}>
-        {tradingStatus}
-      </Badge>
-      <div className="text-xs text-gray-500">
-        S${fundAmount}
-      </div>
-    </div>
+    <Badge variant={tradingState === 'A' ? "default" : "secondary"}>
+      {tradingStatus}
+    </Badge>
   );
+}
+
+// Component to display fund amount from CryptoBot API
+function CryptoBotFundsCell({ userId, userEmail }: { userId: string; userEmail: string }) {
+  const { data: statusData, isLoading, error } = useQuery({
+    queryKey: [`/api/admin/users/${userId}/status`],
+    enabled: true, // Always fetch
+    refetchOnWindowFocus: false,
+    staleTime: 5000, // 5 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds
+    retry: 1,
+  });
+
+  if (isLoading) {
+    return <div className="text-gray-400">Loading...</div>;
+  }
+
+  if (error || !statusData) {
+    return <div className="text-red-500">Error</div>;
+  }
+
+  const fundAmount = statusData.fundData?.fund || 'N/A';
+
+  return <div>S${fundAmount}</div>;
 }
 
 export default function AdminDashboard() {
@@ -500,7 +512,9 @@ export default function AdminDashboard() {
                           </div>
                         </TableCell>
                         <TableCell>{user.email}</TableCell>
-                        <TableCell>S${user.initialFunds}</TableCell>
+                        <TableCell>
+                          <CryptoBotFundsCell userId={user.id} userEmail={user.email} />
+                        </TableCell>
                         <TableCell>
                           <CryptoBotStatusCell userId={user.id} userEmail={user.email} />
                         </TableCell>
