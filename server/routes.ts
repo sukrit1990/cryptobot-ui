@@ -2160,31 +2160,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all users (admin only)
+  // Get all users (admin only) - Fetch from CryptoBot API
   app.get('/api/admin/users', isAdminAuthenticated, async (req, res) => {
     try {
-      const users = await storage.getAllUsersForAdmin();
+      console.log('Fetching accounts from CryptoBot API...');
       
-      // Remove sensitive information from response
-      const safeUsers = users.map(user => ({
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        initialFunds: user.initialFunds,
-        investmentActive: user.investmentActive,
-        riskTolerance: user.riskTolerance,
-        stripeCustomerId: user.stripeCustomerId,
-        stripeSubscriptionId: user.stripeSubscriptionId,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        hasGeminiKeys: !!(user.geminiApiKey && user.geminiApiSecret)
-      }));
+      // Fetch accounts from CryptoBot API
+      const cryptoBotResponse = await fetch('https://cryptobot-api-f15f3256ac28.herokuapp.com/accounts', {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+        }
+      });
+
+      if (!cryptoBotResponse.ok) {
+        console.error('CryptoBot API accounts fetch error:', cryptoBotResponse.status, cryptoBotResponse.statusText);
+        return res.status(500).json({ message: "Failed to fetch accounts from CryptoBot API" });
+      }
+
+      const cryptoBotAccounts = await cryptoBotResponse.json();
+      console.log('CryptoBot accounts fetched successfully:', cryptoBotAccounts);
+
+      // Transform CryptoBot data to match frontend expectations
+      // The API returns an array of account objects
+      const safeUsers = Array.isArray(cryptoBotAccounts) ? cryptoBotAccounts.map((account: any, index: number) => ({
+        id: account.email || `account-${index}`, // Use email as ID or fallback to index
+        email: account.email || 'N/A',
+        firstName: account.name?.split(' ')[0] || 'Unknown',
+        lastName: account.name?.split(' ').slice(1).join(' ') || 'User',
+        initialFunds: account.funds || 0,
+        investmentActive: account.state === 'A', // A = Active, I = Inactive
+        riskTolerance: 'medium', // Default value
+        stripeCustomerId: null, // Not available from CryptoBot API
+        stripeSubscriptionId: null, // Not available from CryptoBot API
+        createdAt: account.created_at || new Date().toISOString(),
+        updatedAt: account.updated_at || new Date().toISOString(),
+        hasGeminiKeys: !!(account.api_key && account.api_secret)
+      })) : [];
 
       res.json(safeUsers);
     } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Failed to fetch users" });
+      console.error("Error fetching users from CryptoBot API:", error);
+      res.status(500).json({ message: "Failed to fetch users from CryptoBot API" });
     }
   });
 
@@ -2350,17 +2368,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId } = req.params;
       const session = req.session as any;
 
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      // Since we're now using emails as userIds from CryptoBot API, 
+      // userId should be the email address
+      const userEmail = userId;
 
-      if (!user.email) {
-        return res.status(400).json({ message: "User email not found" });
+      if (!userEmail) {
+        return res.status(400).json({ message: "User email not provided" });
       }
 
       // Get current trading state from CryptoBot API
-      const currentStateResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/state?email=${encodeURIComponent(user.email)}`, {
+      const currentStateResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/state?email=${encodeURIComponent(userEmail)}`, {
         method: 'GET',
         headers: {
           'accept': 'application/json',
@@ -2377,7 +2394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newState = currentState === 'A' ? 'I' : 'A'; // Toggle: A=Active, I=Inactive
 
       // Update trading state in CryptoBot API
-      const updateStateResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/state?email=${encodeURIComponent(user.email)}&new_state=${newState}`, {
+      const updateStateResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/state?email=${encodeURIComponent(userEmail)}&new_state=${newState}`, {
         method: 'POST',
         headers: {
           'accept': 'application/json',
@@ -2389,17 +2406,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to update trading state in CryptoBot API" });
       }
 
-      // Also update investment active status in local database to match
-      const investmentActive = newState === 'A';
-      await storage.updateUserByAdmin(userId, { investmentActive });
-
-      // Log admin action
+      // Log admin action (no local database update needed since we use CryptoBot API as source)
       await storage.logAdminAction({
         adminId: session.adminId.toString(),
         action: 'TOGGLE_TRADING',
-        targetUserId: userId,
+        targetUserId: userEmail,
         details: { 
-          userEmail: user.email,
+          userEmail: userEmail,
           previousState: currentState,
           newState: newState,
           timestamp: new Date() 
@@ -2475,17 +2488,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId } = req.params;
       
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      // Since we're now using emails as userIds from CryptoBot API, 
+      // userId should be the email address
+      const userEmail = userId;
 
-      if (!user.email) {
-        return res.status(400).json({ message: "User email not found" });
+      if (!userEmail) {
+        return res.status(400).json({ message: "User email not provided" });
       }
 
       // Get account state from CryptoBot API
-      const accountStateResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/state?email=${encodeURIComponent(user.email)}`, {
+      const accountStateResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/state?email=${encodeURIComponent(userEmail)}`, {
         method: 'GET',
         headers: {
           'accept': 'application/json',
@@ -2494,7 +2506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Get fund amount from CryptoBot API
-      const fundResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/fund?email=${encodeURIComponent(user.email)}`, {
+      const fundResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/fund?email=${encodeURIComponent(userEmail)}`, {
         method: 'GET',
         headers: {
           'accept': 'application/json',
@@ -2506,8 +2518,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fundData = fundResponse.ok ? await fundResponse.json() : null;
 
       res.json({
-        userEmail: user.email,
-        userId: user.id,
+        userEmail: userEmail,
+        userId: userEmail,
         accountState,
         fundData,
         localUser: {
