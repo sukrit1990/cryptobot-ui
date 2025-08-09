@@ -112,3 +112,14 @@ Preferred communication style: Simple, everyday language.
 - Integrated guide into pre-login routing - accessible without authentication
 - Updated "Learn how to create Gemini API keys" link on sign-up page to point to new guide
 - Guide includes mobile-responsive design with proper navigation back to sign-up page
+
+### Admin Portal CryptoBot API Integration (August 9, 2025)
+- Enhanced admin user management with full CryptoBot API integration for real-time control
+- Added API endpoints for updating Gemini credentials via CryptoBot update-gemini-credentials endpoint
+- Implemented trading control through CryptoBot start-trading and stop-trading endpoints
+- Created user status monitoring with live account state and fund data retrieval
+- Added account reset functionality via CryptoBot reset-account endpoint for clearing trading positions
+- Integrated user deletion with CryptoBot API delete endpoint to maintain data consistency
+- Enhanced admin dashboard with status check, account reset, and comprehensive user control buttons
+- All admin actions are logged with detailed audit trails including CryptoBot API responses
+- Admin portal now provides complete user lifecycle management with external API synchronization

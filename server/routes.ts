@@ -2195,6 +2195,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates = updateUserAdminSchema.parse(req.body);
       const session = req.session as any;
 
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // If updating Gemini API credentials, call CryptoBot API to update them
+      if (updates.geminiApiKey && updates.geminiApiSecret && user.email) {
+        try {
+          console.log(`Admin updating Gemini credentials for user: ${user.email}`);
+          
+          const cryptoBotUpdate = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/update-gemini-credentials`, {
+            method: 'POST',
+            headers: {
+              'accept': 'application/json',
+              'Content-Type': 'application/json',
+              'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+            },
+            body: JSON.stringify({
+              email: user.email,
+              gemini_api_key: updates.geminiApiKey,
+              gemini_api_secret: updates.geminiApiSecret
+            })
+          });
+
+          if (!cryptoBotUpdate.ok) {
+            const errorData = await cryptoBotUpdate.text();
+            console.error('CryptoBot API update credentials error:', errorData);
+            return res.status(400).json({ 
+              message: "Failed to update Gemini credentials in CryptoBot API" 
+            });
+          }
+
+          console.log('CryptoBot API credentials update successful');
+        } catch (error) {
+          console.error('Error updating Gemini credentials in CryptoBot API:', error);
+          return res.status(500).json({ 
+            message: "Failed to communicate with CryptoBot API for credential update" 
+          });
+        }
+      }
+
+      // If updating investment active status, call CryptoBot API to control trading
+      if (typeof updates.investmentActive === 'boolean' && user.email) {
+        try {
+          console.log(`Admin ${updates.investmentActive ? 'enabling' : 'disabling'} trading for user: ${user.email}`);
+          
+          const tradingEndpoint = updates.investmentActive ? 'start-trading' : 'stop-trading';
+          const cryptoBotTrading = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/${tradingEndpoint}`, {
+            method: 'POST',
+            headers: {
+              'accept': 'application/json',
+              'Content-Type': 'application/json',
+              'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+            },
+            body: JSON.stringify({
+              email: user.email
+            })
+          });
+
+          if (!cryptoBotTrading.ok) {
+            const errorData = await cryptoBotTrading.text();
+            console.error('CryptoBot API trading control error:', errorData);
+            return res.status(400).json({ 
+              message: `Failed to ${updates.investmentActive ? 'start' : 'stop'} trading in CryptoBot API` 
+            });
+          }
+
+          console.log(`CryptoBot API trading ${updates.investmentActive ? 'started' : 'stopped'} successfully`);
+        } catch (error) {
+          console.error('Error controlling trading in CryptoBot API:', error);
+          return res.status(500).json({ 
+            message: "Failed to communicate with CryptoBot API for trading control" 
+          });
+        }
+      }
+
+      // Update user in local database
       const updatedUser = await storage.updateUserByAdmin(userId, updates);
 
       // Log admin action
@@ -2204,6 +2281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetUserId: userId,
         details: { 
           updates: updates,
+          userEmail: user.email,
           timestamp: new Date() 
         }
       });
@@ -2341,6 +2419,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Get user status from CryptoBot API (admin only)
+  app.get('/api/admin/users/:userId/status', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!user.email) {
+        return res.status(400).json({ message: "User email not found" });
+      }
+
+      // Get account state from CryptoBot API
+      const accountStateResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/state?email=${encodeURIComponent(user.email)}`, {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+        }
+      });
+
+      // Get fund amount from CryptoBot API
+      const fundResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/fund?email=${encodeURIComponent(user.email)}`, {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+        }
+      });
+
+      const accountState = accountStateResponse.ok ? await accountStateResponse.json() : null;
+      const fundData = fundResponse.ok ? await fundResponse.json() : null;
+
+      res.json({
+        userEmail: user.email,
+        userId: user.id,
+        accountState,
+        fundData,
+        localUser: {
+          investmentActive: user.investmentActive,
+          initialFunds: user.initialFunds,
+          hasGeminiKeys: !!(user.geminiApiKey && user.geminiApiSecret)
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching user status:", error);
+      res.status(500).json({ message: "Failed to fetch user status" });
+    }
+  });
+
+  // Reset user account in CryptoBot API (admin only)
+  app.post('/api/admin/users/:userId/reset', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const session = req.session as any;
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (!user.email) {
+        return res.status(400).json({ message: "User email not found" });
+      }
+
+      console.log(`Admin resetting account for user: ${user.email}`);
+
+      // Call CryptoBot API to reset account
+      const resetResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/reset-account`, {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json',
+          'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
+        },
+        body: JSON.stringify({
+          email: user.email
+        })
+      });
+
+      if (!resetResponse.ok) {
+        const errorData = await resetResponse.text();
+        console.error('CryptoBot API reset error:', errorData);
+        return res.status(400).json({ 
+          message: "Failed to reset account in CryptoBot API" 
+        });
+      }
+
+      const resetResult = await resetResponse.json();
+      console.log('CryptoBot account reset successful:', resetResult);
+
+      // Log admin action
+      await storage.logAdminAction({
+        adminId: session.adminId.toString(),
+        action: 'RESET_USER_ACCOUNT',
+        targetUserId: userId,
+        details: { 
+          userEmail: user.email,
+          resetResult,
+          timestamp: new Date() 
+        }
+      });
+
+      res.json({ 
+        message: "User account reset successfully",
+        resetResult
+      });
+    } catch (error) {
+      console.error("Error resetting user account:", error);
+      res.status(500).json({ message: "Failed to reset user account" });
     }
   });
 

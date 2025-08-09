@@ -23,7 +23,9 @@ import {
   ExternalLink,
   Eye,
   Key,
-  FileText
+  FileText,
+  RefreshCw,
+  Activity
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -165,6 +167,49 @@ export default function AdminDashboard() {
     },
   });
 
+  // Get user status mutation
+  const getUserStatusMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiRequest("GET", `/api/admin/users/${userId}/status`);
+      return response;
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "User Status Retrieved",
+        description: `CryptoBot Status: ${data.accountState ? 'Connected' : 'Disconnected'}, Funds: $${data.fundData?.fund || 'N/A'}`,
+      });
+      console.log('User status:', data);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to get user status",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reset user account mutation
+  const resetUserAccountMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("POST", `/api/admin/users/${userId}/reset`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account reset successfully",
+        description: "User account has been reset in CryptoBot API.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Reset failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEditUser = (user: any) => {
     setSelectedUser(user);
     editForm.reset({
@@ -178,6 +223,12 @@ export default function AdminDashboard() {
   const handleDeleteUser = (userId: string) => {
     if (window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
       deleteUserMutation.mutate(userId);
+    }
+  };
+
+  const handleResetUser = (userId: string, userEmail: string) => {
+    if (window.confirm(`Are you sure you want to reset the account for ${userEmail}? This will reset their trading position in CryptoBot.`)) {
+      resetUserAccountMutation.mutate(userId);
     }
   };
 
@@ -394,7 +445,7 @@ export default function AdminDashboard() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex space-x-2">
+                          <div className="flex space-x-1">
                             <Button
                               variant="outline"
                               size="sm"
@@ -402,6 +453,22 @@ export default function AdminDashboard() {
                               data-testid={`button-edit-${user.id}`}
                             >
                               <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => getUserStatusMutation.mutate(user.id)}
+                              data-testid={`button-status-${user.id}`}
+                            >
+                              <Activity className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleResetUser(user.id, user.email)}
+                              data-testid={`button-reset-${user.id}`}
+                            >
+                              <RefreshCw className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="outline"
