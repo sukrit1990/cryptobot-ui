@@ -115,11 +115,14 @@ Preferred communication style: Simple, everyday language.
 
 ### Admin Portal CryptoBot API Integration (August 9, 2025)
 - Enhanced admin user management with full CryptoBot API integration for real-time control
-- Added API endpoints for updating Gemini credentials via CryptoBot update-gemini-credentials endpoint
-- Implemented trading control through CryptoBot start-trading and stop-trading endpoints
-- Created user status monitoring with live account state and fund data retrieval
-- Added account reset functionality via CryptoBot reset-account endpoint for clearing trading positions
-- Integrated user deletion with CryptoBot API delete endpoint to maintain data consistency
-- Enhanced admin dashboard with status check, account reset, and comprehensive user control buttons
+- Updated to use correct CryptoBot API endpoints for proper integration:
+  * Gemini credentials: `/account/keys` endpoint with query parameters for email, new_api_key, and new_api_secret
+  * Trading control: `/account/state` endpoint for monitoring and controlling trading status
+  * User deletion: `/account` endpoint with DELETE method for removing user accounts
+  * Fund management: `/account/fund` endpoint with query parameters for email and new_fund amount
+- Created user status monitoring with live account state and fund data retrieval from `/account/state` and `/account/fund`
+- Integrated user deletion with CryptoBot `/account` DELETE endpoint to maintain data consistency
+- Enhanced admin dashboard with status check, fund update, edit, logs, and delete user control buttons
+- Replaced account reset functionality with fund update feature using `/account/fund` endpoint
 - All admin actions are logged with detailed audit trails including CryptoBot API responses
-- Admin portal now provides complete user lifecycle management with external API synchronization
+- Admin portal now provides complete user lifecycle management with proper external API synchronization

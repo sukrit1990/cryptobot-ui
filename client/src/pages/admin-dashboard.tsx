@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { adminChangePasswordSchema, updateUserAdminSchema } from "@shared/schema";
+import { adminChangePasswordSchema, updateUserAdminSchema, updateUserFundSchema } from "@shared/schema";
 import { 
   Users, 
   Settings, 
@@ -24,7 +24,7 @@ import {
   Eye,
   Key,
   FileText,
-  RefreshCw,
+  DollarSign,
   Activity
 } from "lucide-react";
 
@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showFundDialog, setShowFundDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -70,6 +71,14 @@ export default function AdminDashboard() {
       geminiApiKey: '',
       geminiApiSecret: '',
       investmentActive: true,
+    },
+  });
+
+  // Fund update form
+  const fundForm = useForm({
+    resolver: zodResolver(updateUserFundSchema),
+    defaultValues: {
+      newFund: 0,
     },
   });
 
@@ -189,21 +198,22 @@ export default function AdminDashboard() {
     },
   });
 
-  // Reset user account mutation
-  const resetUserAccountMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      await apiRequest("POST", `/api/admin/users/${userId}/reset`);
+  // Update user fund mutation
+  const updateUserFundMutation = useMutation({
+    mutationFn: async ({ userId, newFund }: { userId: string; newFund: number }) => {
+      await apiRequest("POST", `/api/admin/users/${userId}/update-fund`, { newFund });
     },
     onSuccess: () => {
       toast({
-        title: "Account reset successfully",
-        description: "User account has been reset in CryptoBot API.",
+        title: "Fund updated successfully",
+        description: "User fund has been updated in CryptoBot API.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setShowFundDialog(false);
     },
     onError: (error: any) => {
       toast({
-        title: "Reset failed",
+        title: "Fund update failed",
         description: error.message,
         variant: "destructive",
       });
@@ -226,10 +236,12 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleResetUser = (userId: string, userEmail: string) => {
-    if (window.confirm(`Are you sure you want to reset the account for ${userEmail}? This will reset their trading position in CryptoBot.`)) {
-      resetUserAccountMutation.mutate(userId);
-    }
+  const handleUpdateFund = (user: any) => {
+    setSelectedUser(user);
+    fundForm.reset({
+      newFund: user.initialFunds || 0,
+    });
+    setShowFundDialog(true);
   };
 
   const onPasswordSubmit = (data: any) => {
@@ -239,6 +251,12 @@ export default function AdminDashboard() {
   const onEditSubmit = (data: any) => {
     if (selectedUser) {
       updateUserMutation.mutate({ userId: selectedUser.id, data });
+    }
+  };
+
+  const onFundSubmit = (data: any) => {
+    if (selectedUser) {
+      updateUserFundMutation.mutate({ userId: selectedUser.id, newFund: data.newFund });
     }
   };
 
@@ -465,10 +483,10 @@ export default function AdminDashboard() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleResetUser(user.id, user.email)}
-                              data-testid={`button-reset-${user.id}`}
+                              onClick={() => handleUpdateFund(user)}
+                              data-testid={`button-fund-${user.id}`}
                             >
-                              <RefreshCw className="h-4 w-4" />
+                              <DollarSign className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="outline"
@@ -615,6 +633,60 @@ export default function AdminDashboard() {
                     disabled={updateUserMutation.isPending}
                   >
                     {updateUserMutation.isPending ? "Updating..." : "Update User"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Fund Update Dialog */}
+      <Dialog open={showFundDialog} onOpenChange={setShowFundDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update User Fund</DialogTitle>
+            <div className="text-sm text-gray-600">
+              Update fund amount for: <strong>{selectedUser?.email}</strong>
+            </div>
+          </DialogHeader>
+          {selectedUser && (
+            <Form {...fundForm}>
+              <form onSubmit={fundForm.handleSubmit(onFundSubmit)} className="space-y-4">
+                <FormField
+                  control={fundForm.control}
+                  name="newFund"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Fund Amount (S$)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01"
+                          min="1"
+                          placeholder="Enter fund amount" 
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setShowFundDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={updateUserFundMutation.isPending}
+                  >
+                    {updateUserFundMutation.isPending ? "Updating..." : "Update Fund"}
                   </Button>
                 </div>
               </form>

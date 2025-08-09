@@ -184,6 +184,10 @@ export const updateUserAdminSchema = z.object({
   investmentActive: z.boolean().optional(),
 });
 
+export const updateUserFundSchema = z.object({
+  newFund: z.number().min(1, "Fund amount must be at least 1"),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUserSettings = z.infer<typeof updateUserSettingsSchema>;
 export type VerifyOtp = z.infer<typeof verifyOtpSchema>;
@@ -192,3 +196,4 @@ export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type AdminLogin = z.infer<typeof adminLoginSchema>;
 export type AdminChangePassword = z.infer<typeof adminChangePasswordSchema>;
 export type UpdateUserAdmin = z.infer<typeof updateUserAdminSchema>;
+export type UpdateUserFund = z.infer<typeof updateUserFundSchema>;
