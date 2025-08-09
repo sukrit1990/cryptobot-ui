@@ -2216,17 +2216,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates = updateUserAdminSchema.parse(req.body);
       const session = req.session as any;
 
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      // userId is the email from CryptoBot API
+      const userEmail = userId;
 
       // If updating Gemini API credentials, call CryptoBot API to update them
-      if (updates.geminiApiKey && updates.geminiApiSecret && user.email) {
+      if (updates.geminiApiKey && updates.geminiApiSecret && userEmail) {
         try {
-          console.log(`Admin updating Gemini credentials for user: ${user.email}`);
+          console.log(`Admin updating Gemini credentials for user: ${userEmail}`);
           
-          const cryptoBotUpdate = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/keys?email=${encodeURIComponent(user.email)}&new_api_key=${encodeURIComponent(updates.geminiApiKey)}&new_api_secret=${encodeURIComponent(updates.geminiApiSecret)}`, {
+          const cryptoBotUpdate = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/keys?email=${encodeURIComponent(userEmail)}&new_api_key=${encodeURIComponent(updates.geminiApiKey)}&new_api_secret=${encodeURIComponent(updates.geminiApiSecret)}`, {
             method: 'POST',
             headers: {
               'accept': 'application/json',
@@ -2252,35 +2250,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // If updating investment active status, use account/state endpoint to control trading
-      if (typeof updates.investmentActive === 'boolean' && user.email) {
-        try {
-          console.log(`Admin ${updates.investmentActive ? 'enabling' : 'disabling'} trading for user: ${user.email}`);
-          
-          // Note: Trading control is managed through the account/state endpoint
-          // The actual implementation would depend on how the CryptoBot API handles state changes
-          console.log(`Trading status will be controlled through account/state endpoint for ${user.email}`);
-        } catch (error) {
-          console.error('Error controlling trading in CryptoBot API:', error);
-          return res.status(500).json({ 
-            message: "Failed to communicate with CryptoBot API for trading control" 
-          });
-        }
-      }
-
-      // Update user in local database
-      const updatedUser = await storage.updateUserByAdmin(userId, updates);
-
       // Log admin action
       await storage.logAdminAction({
         adminId: session.adminId.toString(),
-        action: 'UPDATE_USER',
-        targetUserId: userId,
+        action: 'UPDATE_API_CREDENTIALS',
+        targetUserId: userEmail,
         details: { 
-          updates: updates,
-          userEmail: user.email,
+          userEmail: userEmail,
+          updatedCredentials: !!(updates.geminiApiKey && updates.geminiApiSecret),
           timestamp: new Date() 
         }
+      });
+
+      res.json({ 
+        message: "API credentials updated successfully",
+        userEmail: userEmail
       });
 
       res.json({ 
@@ -2582,9 +2566,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
           subscriptionStatus = subscription.status;
-        } catch (error) {
-          console.error("Error fetching subscription details:", error);
-          subscriptionStatus = 'error';
+        } catch (error: any) {
+          // Handle test mode subscription IDs in live mode gracefully
+          if (error.code === 'resource_missing' && error.message?.includes('test mode')) {
+            console.log(`Test mode subscription ID found for ${userEmail}, treating as no subscription`);
+            subscriptionStatus = 'test_mode';
+          } else {
+            console.error("Error fetching subscription details:", error);
+            subscriptionStatus = 'error';
+          }
         }
       }
 
