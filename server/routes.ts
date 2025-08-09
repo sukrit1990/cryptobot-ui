@@ -2309,50 +2309,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId } = req.params;
       const session = req.session as any;
 
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+      // Since we're now using emails as userIds from CryptoBot API, 
+      // userId should be the email address
+      const userEmail = userId;
+
+      if (!userEmail) {
+        return res.status(400).json({ message: "User email not provided" });
       }
 
-      // Cancel Stripe subscription if exists
-      if (user.stripeSubscriptionId && stripe) {
+      // Try to get user from local database for Stripe cleanup (if exists)
+      let localUser = null;
+      try {
+        // Try to find user by email in local database
+        localUser = await storage.getUserByEmail(userEmail);
+      } catch (error) {
+        console.log('User not found in local database, proceeding with CryptoBot deletion only');
+      }
+
+      // Cancel Stripe subscription if exists in local database
+      if (localUser?.stripeSubscriptionId && stripe) {
         try {
-          await stripe.subscriptions.cancel(user.stripeSubscriptionId);
-          console.log('Stripe subscription cancelled by admin:', user.stripeSubscriptionId);
+          await stripe.subscriptions.cancel(localUser.stripeSubscriptionId);
+          console.log('Stripe subscription cancelled by admin:', localUser.stripeSubscriptionId);
         } catch (error) {
           console.error('Error cancelling Stripe subscription:', error);
         }
       }
 
       // Delete from CryptoBot API using /account endpoint
-      if (user.email) {
-        try {
-          const cryptoBotDelete = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account?email=${encodeURIComponent(user.email)}`, {
-            method: 'DELETE',
-            headers: {
-              'accept': 'application/json',
-              'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
-            }
-          });
-
-          if (!cryptoBotDelete.ok) {
-            console.error('CryptoBot API delete error by admin');
+      try {
+        const cryptoBotDelete = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account?email=${encodeURIComponent(userEmail)}`, {
+          method: 'DELETE',
+          headers: {
+            'accept': 'application/json',
+            'x-api-key': 'L5oQfQ6OAmUQfGhdYsaSEEZqShpJBB2hYQg7nCehH9IzgeEX841EBGkRZp648XDz4Osj6vN0BgXvBRHbi6bqreTviFD7xnnXXV7D2N9nEDWMG25S7x31ve1I2W9pzVhA'
           }
-        } catch (error) {
-          console.error('Error deleting from CryptoBot API:', error);
+        });
+
+        if (!cryptoBotDelete.ok) {
+          console.error('CryptoBot API delete error by admin');
+          return res.status(500).json({ message: "Failed to delete user from CryptoBot API" });
         }
+      } catch (error) {
+        console.error('Error deleting from CryptoBot API:', error);
+        return res.status(500).json({ message: "Failed to delete user from CryptoBot API" });
       }
 
-      // Delete user from local database
-      await storage.deleteUser(userId);
+      // Delete user from local database if exists
+      if (localUser) {
+        await storage.deleteUser(localUser.id);
+      }
 
       // Log admin action
       await storage.logAdminAction({
         adminId: session.adminId.toString(),
         action: 'DELETE_USER',
-        targetUserId: userId,
+        targetUserId: userEmail,
         details: { 
-          userEmail: user.email,
+          userEmail: userEmail,
           timestamp: new Date() 
         }
       });
@@ -2524,11 +2538,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: userEmail,
         accountState,
         fundData,
-        localUser: {
-          investmentActive: user.investmentActive,
-          initialFunds: user.initialFunds,
-          hasGeminiKeys: !!(user.geminiApiKey && user.geminiApiSecret)
-        }
+        // No local user data needed since we use CryptoBot API as source of truth
+        localUser: null
       });
     } catch (error) {
       console.error("Error fetching user status:", error);
@@ -2543,23 +2554,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { newFund } = req.body;
       const session = req.session as any;
       
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      // Since we're now using emails as userIds from CryptoBot API, 
+      // userId should be the email address
+      const userEmail = userId;
 
-      if (!user.email) {
-        return res.status(400).json({ message: "User email not found" });
+      if (!userEmail) {
+        return res.status(400).json({ message: "User email not provided" });
       }
 
       if (!newFund || isNaN(newFund)) {
         return res.status(400).json({ message: "Valid fund amount required" });
       }
 
-      console.log(`Admin updating fund for user: ${user.email} to ${newFund}`);
+      console.log(`Admin updating fund for user: ${userEmail} to ${newFund}`);
 
       // Call CryptoBot API to update fund
-      const fundResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/fund?email=${encodeURIComponent(user.email)}&new_fund=${newFund}`, {
+      const fundResponse = await fetch(`https://cryptobot-api-f15f3256ac28.herokuapp.com/account/fund?email=${encodeURIComponent(userEmail)}&new_fund=${newFund}`, {
         method: 'POST',
         headers: {
           'accept': 'application/json',
@@ -2579,16 +2589,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fundResult = await fundResponse.json();
       console.log('CryptoBot fund update successful:', fundResult);
 
-      // Update local database
-      await storage.updateUserByAdmin(userId, { initialFunds: parseFloat(newFund) });
+      // No local database update needed since we use CryptoBot API as source of truth
 
       // Log admin action
       await storage.logAdminAction({
         adminId: session.adminId.toString(),
         action: 'UPDATE_USER_FUND',
-        targetUserId: userId,
+        targetUserId: userEmail,
         details: { 
-          userEmail: user.email,
+          userEmail: userEmail,
           newFund: newFund,
           fundResult,
           timestamp: new Date() 
@@ -2610,18 +2619,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { userId } = req.params;
       
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+      // Since we're now using emails as userIds from CryptoBot API, 
+      // userId should be the email address
+      const userEmail = userId;
+
+      if (!userEmail) {
+        return res.status(400).json({ message: "User email not provided" });
       }
 
-      // Generate Dropbox link using the user's email or ID
-      const dropboxLink = `https://www.dropbox.com/home/Apps/cryptobotgemini%20(1)/cryptobotgemini/${encodeURIComponent(user.email || userId)}`;
+      // Generate Dropbox link using the user's email
+      const dropboxLink = `https://www.dropbox.com/home/Apps/cryptobotgemini%20(1)/cryptobotgemini/${encodeURIComponent(userEmail)}`;
       
       res.json({ 
         dropboxLink,
-        userEmail: user.email,
-        userId: user.id
+        userEmail: userEmail,
+        userId: userEmail
       });
     } catch (error) {
       console.error("Error generating logs link:", error);
