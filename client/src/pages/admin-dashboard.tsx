@@ -123,13 +123,12 @@ export default function AdminDashboard() {
     },
   });
 
-  // User edit form
+  // User edit form - API credentials only
   const editForm = useForm({
     resolver: zodResolver(updateUserAdminSchema),
     defaultValues: {
       geminiApiKey: '',
       geminiApiSecret: '',
-      investmentActive: true,
     },
   });
 
@@ -284,7 +283,6 @@ export default function AdminDashboard() {
     editForm.reset({
       geminiApiKey: '',
       geminiApiSecret: '',
-      investmentActive: user.investmentActive,
     });
     setShowEditDialog(true);
   };
@@ -659,42 +657,21 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Edit User Dialog */}
+      {/* Edit User Dialog - API Credentials Only */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle>Update API Credentials</DialogTitle>
             <DialogDescription>
-              Update user settings and API credentials
+              Update Gemini API credentials for this user
             </DialogDescription>
           </DialogHeader>
           {selectedUser && (
             <Form {...editForm}>
               <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
                 <div className="text-sm text-gray-600">
-                  Editing: {selectedUser.firstName} {selectedUser.lastName} ({selectedUser.email})
+                  Updating API credentials for: {selectedUser.firstName} {selectedUser.lastName} ({selectedUser.email})
                 </div>
-                
-                <FormField
-                  control={editForm.control}
-                  name="investmentActive"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Trading Active</FormLabel>
-                        <div className="text-sm text-muted-foreground">
-                          Enable or disable automated trading for this user
-                        </div>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
                 
                 <FormField
                   control={editForm.control}
