@@ -30,34 +30,20 @@ import {
 
 // Component to display CryptoBot status for each user
 function CryptoBotStatusCell({ userId, userEmail }: { userId: string; userEmail: string }) {
-  const [shouldFetch, setShouldFetch] = useState(false);
-  
   const { data: statusData, isLoading, error } = useQuery({
     queryKey: [`/api/admin/users/${userId}/status`],
-    enabled: shouldFetch,
+    enabled: true, // Always fetch
     refetchOnWindowFocus: false,
-    staleTime: 30000, // 30 seconds
-    retry: false,
+    staleTime: 5000, // 5 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds
+    retry: 1,
   });
-
-  if (!shouldFetch) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setShouldFetch(true)}
-        className="text-xs"
-      >
-        Check Status
-      </Button>
-    );
-  }
 
   if (isLoading) {
     return (
       <div className="space-y-1">
         <Badge variant="outline">Loading...</Badge>
-        <div className="text-xs text-gray-400">Fetching status...</div>
+        <div className="text-xs text-gray-400">Fetching...</div>
       </div>
     );
   }
@@ -66,14 +52,7 @@ function CryptoBotStatusCell({ userId, userEmail }: { userId: string; userEmail:
     return (
       <div className="space-y-1">
         <Badge variant="destructive">Error</Badge>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShouldFetch(true)}
-          className="text-xs"
-        >
-          Retry
-        </Button>
+        <div className="text-xs text-gray-400">Failed to load</div>
       </div>
     );
   }
@@ -90,14 +69,6 @@ function CryptoBotStatusCell({ userId, userEmail }: { userId: string; userEmail:
       <div className="text-xs text-gray-500">
         S${fundAmount}
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setShouldFetch(true)}
-        className="text-xs"
-      >
-        Refresh
-      </Button>
     </div>
   );
 }
