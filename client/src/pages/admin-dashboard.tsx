@@ -121,6 +121,7 @@ export default function AdminDashboard() {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showFundDialog, setShowFundDialog] = useState(false);
+  const [showTradingDialog, setShowTradingDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -320,7 +321,8 @@ export default function AdminDashboard() {
   };
 
   const handleToggleTrading = (user: any) => {
-    toggleTradingMutation.mutate(user.id);
+    setSelectedUser(user);
+    setShowTradingDialog(true);
   };
 
   const onPasswordSubmit = (data: any) => {
@@ -788,6 +790,61 @@ export default function AdminDashboard() {
                 </div>
               </form>
             </Form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Trading State Dialog */}
+      <Dialog open={showTradingDialog} onOpenChange={setShowTradingDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Toggle Trading State</DialogTitle>
+            <div className="text-sm text-gray-600">
+              Manage trading status for: <strong>{selectedUser?.email}</strong>
+            </div>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-6">
+              {/* Current Status Display */}
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <h4 className="font-medium text-gray-900">Current Status</h4>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Trading State:</span>
+                  <CryptoBotStatusCell userId={selectedUser.id} userEmail={selectedUser.email} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">CryptoBot ID:</span>
+                  <span className="text-sm font-mono text-gray-900">{selectedUser.cryptoBotId || 'N/A'}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Toggle the trading state to activate or deactivate automated trading for this user.
+                </p>
+                
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setShowTradingDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      toggleTradingMutation.mutate(selectedUser.id);
+                      setShowTradingDialog(false);
+                    }}
+                    disabled={toggleTradingMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {toggleTradingMutation.isPending ? "Toggling..." : "Toggle Trading State"}
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
