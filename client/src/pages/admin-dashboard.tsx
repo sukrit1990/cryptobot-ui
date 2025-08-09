@@ -514,7 +514,6 @@ export default function AdminDashboard() {
                       <TableHead>Email</TableHead>
                       <TableHead>Funds</TableHead>
                       <TableHead>Trading</TableHead>
-                      <TableHead>CryptoBot Status</TableHead>
                       <TableHead>API Keys</TableHead>
                       <TableHead>Subscription</TableHead>
                       <TableHead>Actions</TableHead>
@@ -531,11 +530,6 @@ export default function AdminDashboard() {
                         </TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>S${user.initialFunds}</TableCell>
-                        <TableCell>
-                          <Badge variant={user.investmentActive ? "default" : "secondary"}>
-                            {user.investmentActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
                         <TableCell>
                           <CryptoBotStatusCell userId={user.id} userEmail={user.email} />
                         </TableCell>
