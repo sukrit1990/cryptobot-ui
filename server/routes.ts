@@ -2186,8 +2186,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // The API returns { accounts: [...], count: n } format
       const accountsArray = cryptoBotAccounts.accounts || [];
       const safeUsers = Array.isArray(accountsArray) ? accountsArray.map((account: any, index: number) => ({
-        id: account.EMAIL || `account-${index}`, // Use EMAIL as ID or fallback to index
+        id: account.EMAIL || `account-${index}`, // Use EMAIL as ID for compatibility
         email: account.EMAIL || 'N/A',
+        cryptoBotId: account.ID || null, // Include actual CryptoBot numeric ID
         firstName: account.EMAIL?.split('@')[0] || 'Unknown', // Extract name from email
         lastName: 'User',
         initialFunds: parseFloat(account.FUND) || 0,

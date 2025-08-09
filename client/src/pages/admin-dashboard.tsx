@@ -503,7 +503,7 @@ export default function AdminDashboard() {
                         <TableCell>
                           <div>
                             <div className="font-medium">{user.firstName} {user.lastName}</div>
-                            <div className="text-sm text-gray-500">ID: {user.id}</div>
+                            <div className="text-sm text-gray-500">ID: {user.cryptoBotId || user.id}</div>
                           </div>
                         </TableCell>
                         <TableCell>{user.email}</TableCell>
