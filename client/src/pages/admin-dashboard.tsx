@@ -28,12 +28,85 @@ import {
   Activity
 } from "lucide-react";
 
+// Component to display CryptoBot status for each user
+function CryptoBotStatusCell({ userId, userEmail }: { userId: string; userEmail: string }) {
+  const [shouldFetch, setShouldFetch] = useState(false);
+  
+  const { data: statusData, isLoading, error } = useQuery({
+    queryKey: [`/api/admin/users/${userId}/status`],
+    enabled: shouldFetch,
+    refetchOnWindowFocus: false,
+    staleTime: 30000, // 30 seconds
+    retry: false,
+  });
+
+  if (!shouldFetch) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setShouldFetch(true)}
+        className="text-xs"
+      >
+        Check Status
+      </Button>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-1">
+        <Badge variant="outline">Loading...</Badge>
+        <div className="text-xs text-gray-400">Fetching status...</div>
+      </div>
+    );
+  }
+
+  if (error || !statusData) {
+    return (
+      <div className="space-y-1">
+        <Badge variant="destructive">Error</Badge>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShouldFetch(true)}
+          className="text-xs"
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  const tradingState = statusData.accountState?.state;
+  const tradingStatus = tradingState === 'A' ? 'Active' : tradingState === 'I' ? 'Inactive' : 'Unknown';
+  const fundAmount = statusData.fundData?.fund || 'N/A';
+
+  return (
+    <div className="space-y-1">
+      <Badge variant={tradingState === 'A' ? "default" : "secondary"}>
+        {tradingStatus}
+      </Badge>
+      <div className="text-xs text-gray-500">
+        S${fundAmount}
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setShouldFetch(true)}
+        className="text-xs"
+      >
+        Refresh
+      </Button>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showFundDialog, setShowFundDialog] = useState(false);
-  const [userStatuses, setUserStatuses] = useState<{[userId: string]: any}>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -177,27 +250,16 @@ export default function AdminDashboard() {
     },
   });
 
-  // Get user status mutation
+  // Get user status mutation - for quick status checks with toast notifications
   const getUserStatusMutation = useMutation({
     mutationFn: async (userId: string) => {
       const response = await apiRequest("GET", `/api/admin/users/${userId}/status`);
-      return { ...response, userId };
+      return response;
     },
     onSuccess: (data: any) => {
       const tradingState = data.accountState?.state;
       const tradingStatus = tradingState === 'A' ? 'Active' : tradingState === 'I' ? 'Inactive' : 'Unknown';
       const fundAmount = data.fundData?.fund || 'N/A';
-      
-      // Store the status in local state for display
-      setUserStatuses(prev => ({
-        ...prev,
-        [data.userId]: {
-          tradingState: tradingState,
-          tradingStatus: tradingStatus,
-          fundAmount: fundAmount,
-          lastChecked: new Date().toLocaleString()
-        }
-      }));
       
       toast({
         title: "User Status Retrieved",
@@ -475,21 +537,7 @@ export default function AdminDashboard() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {userStatuses[user.id] ? (
-                            <div className="space-y-1">
-                              <Badge variant={userStatuses[user.id].tradingState === 'A' ? "default" : "secondary"}>
-                                {userStatuses[user.id].tradingStatus}
-                              </Badge>
-                              <div className="text-xs text-gray-500">
-                                S${userStatuses[user.id].fundAmount}
-                              </div>
-                              <div className="text-xs text-gray-400">
-                                {userStatuses[user.id].lastChecked}
-                              </div>
-                            </div>
-                          ) : (
-                            <Badge variant="outline">Check Status</Badge>
-                          )}
+                          <CryptoBotStatusCell userId={user.id} userEmail={user.email} />
                         </TableCell>
                         <TableCell>
                           <Badge variant={user.hasGeminiKeys ? "default" : "destructive"}>
