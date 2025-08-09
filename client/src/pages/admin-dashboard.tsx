@@ -87,6 +87,35 @@ function CryptoBotFundsCell({ userId, userEmail }: { userId: string; userEmail: 
   return <div>S${fundAmount}</div>;
 }
 
+// Component to display subscription status from local database
+function SubscriptionStatusCell({ userEmail }: { userEmail: string }) {
+  const { data: subscriptionData, isLoading, error } = useQuery({
+    queryKey: [`/api/admin/users/${userEmail}/subscription`],
+    enabled: true,
+    refetchOnWindowFocus: false,
+    staleTime: 10000, // 10 seconds
+    refetchInterval: 60000, // Refresh every minute
+    retry: 1,
+  });
+
+  if (isLoading) {
+    return <Badge variant="outline">Loading...</Badge>;
+  }
+
+  if (error || !subscriptionData) {
+    return <Badge variant="secondary">Unknown</Badge>;
+  }
+
+  const hasActiveSubscription = subscriptionData.stripeSubscriptionId;
+  const subscriptionStatus = subscriptionData.subscriptionStatus || 'inactive';
+
+  return (
+    <Badge variant={hasActiveSubscription ? "default" : "secondary"}>
+      {hasActiveSubscription ? subscriptionStatus : "None"}
+    </Badge>
+  );
+}
+
 export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
@@ -508,9 +537,7 @@ export default function AdminDashboard() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.stripeSubscriptionId ? "default" : "secondary"}>
-                            {user.stripeSubscriptionId ? "Active" : "None"}
-                          </Badge>
+                          <SubscriptionStatusCell userEmail={user.email} />
                         </TableCell>
                         <TableCell>
                           <TooltipProvider>

@@ -2548,6 +2548,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get subscription status for specific user (admin only)
+  app.get('/api/admin/users/:userEmail/subscription', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { userEmail } = req.params;
+      
+      // Try to find user in local database by email
+      let user = null;
+      try {
+        user = await storage.getUserByEmail(userEmail);
+      } catch (error) {
+        // User not found in local database, return default
+        return res.json({
+          stripeSubscriptionId: null,
+          stripeCustomerId: null,
+          subscriptionStatus: 'none',
+          hasSubscription: false
+        });
+      }
+
+      if (!user) {
+        return res.json({
+          stripeSubscriptionId: null,
+          stripeCustomerId: null,
+          subscriptionStatus: 'none',
+          hasSubscription: false
+        });
+      }
+
+      // If user has subscription, get details from Stripe
+      let subscriptionStatus = 'none';
+      if (user.stripeSubscriptionId && stripe) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          subscriptionStatus = subscription.status;
+        } catch (error) {
+          console.error("Error fetching subscription details:", error);
+          subscriptionStatus = 'error';
+        }
+      }
+
+      res.json({
+        stripeSubscriptionId: user.stripeSubscriptionId,
+        stripeCustomerId: user.stripeCustomerId,
+        subscriptionStatus: subscriptionStatus,
+        hasSubscription: !!user.stripeSubscriptionId
+      });
+    } catch (error) {
+      console.error("Error fetching subscription status:", error);
+      res.status(500).json({ message: "Failed to fetch subscription status" });
+    }
+  });
+
   // Update user fund in CryptoBot API (admin only)
   app.post('/api/admin/users/:userId/update-fund', isAdminAuthenticated, async (req, res) => {
     try {
