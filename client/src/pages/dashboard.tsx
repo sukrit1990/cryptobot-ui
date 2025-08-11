@@ -179,13 +179,24 @@ export default function Dashboard() {
     const max = Math.max(...allValues);
     const range = max - min;
     
-    // If range is very small, add more padding to show variation
-    const effectivePadding = range < (max * 0.01) ? Math.max(paddingPercent, 2) : paddingPercent;
+    // For narrow ranges (like 4970-6050), use more aggressive padding
+    let effectivePadding = paddingPercent;
+    if (range < (max * 0.05)) { // If range is less than 5% of max value
+      effectivePadding = Math.max(paddingPercent, 15); // Use at least 15% padding
+    } else if (range < (max * 0.02)) { // If range is less than 2% of max value
+      effectivePadding = Math.max(paddingPercent, 25); // Use at least 25% padding
+    }
+    
     const padding = (range * effectivePadding) / 100;
     
+    // For very narrow ranges, ensure minimum range of at least 200
+    const minRange = 200;
+    const adjustedMin = range < minRange ? min - (minRange - range) / 2 : min - padding;
+    const adjustedMax = range < minRange ? max + (minRange - range) / 2 : max + padding;
+    
     // Round to nearest multiples of 50
-    const minDomain = Math.max(0, Math.floor((min - padding) / 50) * 50);
-    const maxDomain = Math.ceil((max + padding) / 50) * 50;
+    const minDomain = Math.max(0, Math.floor(adjustedMin / 50) * 50);
+    const maxDomain = Math.ceil(adjustedMax / 50) * 50;
     
     return [minDomain, maxDomain];
   };
@@ -197,12 +208,13 @@ export default function Dashboard() {
     const [min, max] = domain;
     const range = max - min;
     
-    // Determine appropriate step size (multiples of 50) based on data range
+    // Determine appropriate step size based on actual domain range, not just data range
     let stepSize = 50;
     if (range > 2000) stepSize = 250; // Use 250s for very large ranges (e.g., 500-6000)
     else if (range > 1000) stepSize = 100; // Use 100s for large ranges  
-    else if (range > 500) stepSize = 50; // Use 50s for medium ranges
-    else stepSize = 50; // Default to 50
+    else if (range > 500) stepSize = 100; // Use 100s for medium ranges
+    else if (range > 200) stepSize = 50; // Use 50s for smaller ranges
+    else stepSize = 25; // Use 25s for very narrow ranges
     
     // Ensure step size is reasonable multiple
     stepSize = Math.max(50, Math.round(stepSize / 50) * 50);
