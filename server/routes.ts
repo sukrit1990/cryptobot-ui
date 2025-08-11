@@ -991,15 +991,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Transform the response to match expected format
       if (historyData && historyData.history && Array.isArray(historyData.history)) {
-        const transformedData = historyData.history.map((item: any) => ({
-          date: item.DATE,
-          invested: parseFloat(item.INVESTED),
-          current: parseFloat(item.CURRENT),
-          value: parseFloat(item.CURRENT), // Use current value for chart
-          timestamp: item.DATE
-        }));
+        const transformedData = historyData.history
+          .map((item: any) => {
+            // Convert date string "01 Aug 2025" to proper ISO timestamp
+            const dateObj = new Date(item.DATE);
+            const isoTimestamp = dateObj.toISOString();
+            
+            return {
+              date: item.DATE,
+              invested: parseFloat(item.INVESTED) || 0,
+              current: parseFloat(item.CURRENT) || 0,
+              value: parseFloat(item.CURRENT) || 0, // Use current value for chart
+              timestamp: isoTimestamp,
+              DATE: item.DATE // Keep original format for compatibility
+            };
+          })
+          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); // Sort by date
+        
+        console.log('Transformed portfolio data:', transformedData.slice(-3)); // Log last 3 entries for debugging
         res.json(transformedData);
       } else {
+        console.log('No portfolio history data found:', historyData);
         res.json([]);
       }
     } catch (error) {
