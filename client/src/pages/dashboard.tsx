@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, RefreshCw, PiggyBank } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 import { useQuery } from "@tanstack/react-query";
 
 interface PortfolioData {
@@ -18,6 +18,17 @@ interface HistoryDataPoint {
   date: string;
   value: number;
   timestamp: string;
+}
+
+interface ProfitDataPoint {
+  ID: string;
+  DATE: string;
+  PROFIT: number;
+}
+
+interface ProfitData {
+  user_id: string;
+  profit: ProfitDataPoint[];
 }
 
 export default function Dashboard() {
@@ -38,7 +49,7 @@ export default function Dashboard() {
   });
 
   // Fetch profit data from CryptoBot API
-  const { data: profitData, isLoading: profitLoading, refetch: refetchProfit } = useQuery({
+  const { data: profitData, isLoading: profitLoading, refetch: refetchProfit } = useQuery<ProfitData>({
     queryKey: ['/api/profit'],
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
   });
@@ -352,46 +363,92 @@ export default function Dashboard() {
             ) : chartData.length > 0 ? (
               <div className="h-48 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <LineChart 
+                    data={chartData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <defs>
+                      <linearGradient id="investedGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="currentGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid 
+                      strokeDasharray="2 2" 
+                      stroke="#E5E7EB" 
+                      opacity={0.6}
+                    />
                     <XAxis 
                       dataKey="date" 
-                      tick={{ fontSize: 12 }}
-                      stroke="#6B7280"
+                      tick={{ fontSize: 11, fill: '#6B7280' }}
+                      stroke="#9CA3AF"
+                      tickLine={{ stroke: '#D1D5DB' }}
                     />
                     <YAxis 
-                      tick={{ fontSize: 12 }}
-                      stroke="#6B7280"
+                      tick={{ fontSize: 11, fill: '#6B7280' }}
+                      stroke="#9CA3AF"
+                      tickLine={{ stroke: '#D1D5DB' }}
                       tickFormatter={(value) => `$${value.toLocaleString()}`}
                     />
                     <Tooltip 
                       formatter={(value: any, name: string) => [
                         formatCurrency(value), 
-                        name === 'invested' ? 'Invested Amount' : 'Current Value'
+                        name === 'invested' ? '💰 Invested Amount' : '📈 Current Value'
                       ]}
-                      labelStyle={{ color: '#374151' }}
+                      labelStyle={{ color: '#374151', fontWeight: '600' }}
                       contentStyle={{ 
-                        backgroundColor: '#F9FAFB', 
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)', 
                         border: '1px solid #E5E7EB',
-                        borderRadius: '8px'
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
                       }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px' }}
+                      iconType="line"
                     />
                     <Line 
                       type="monotone" 
                       dataKey="invested" 
-                      stroke="#6B7280" 
-                      strokeWidth={2}
-                      strokeDasharray="5 5"
-                      dot={{ fill: '#6B7280', strokeWidth: 2, r: 3 }}
-                      activeDot={{ r: 5, stroke: '#6B7280', strokeWidth: 2 }}
+                      stroke="#F59E0B" 
+                      strokeWidth={3}
+                      strokeDasharray="8 4"
+                      dot={{ 
+                        fill: '#F59E0B', 
+                        strokeWidth: 2, 
+                        r: 4,
+                        stroke: '#FFFFFF'
+                      }}
+                      activeDot={{ 
+                        r: 7, 
+                        stroke: '#F59E0B', 
+                        strokeWidth: 3,
+                        fill: '#FFFFFF'
+                      }}
+                      name="Invested Amount"
                     />
                     <Line 
                       type="monotone" 
                       dataKey="current" 
-                      stroke="#2563EB" 
-                      strokeWidth={3}
-                      dot={{ fill: '#2563EB', strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: '#2563EB', strokeWidth: 2 }}
+                      stroke="#10B981" 
+                      strokeWidth={4}
+                      dot={{ 
+                        fill: '#10B981', 
+                        strokeWidth: 2, 
+                        r: 5,
+                        stroke: '#FFFFFF'
+                      }}
+                      activeDot={{ 
+                        r: 8, 
+                        stroke: '#10B981', 
+                        strokeWidth: 3,
+                        fill: '#FFFFFF'
+                      }}
+                      name="Current Value"
                     />
                   </LineChart>
                 </ResponsiveContainer>
