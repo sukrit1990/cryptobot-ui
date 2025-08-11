@@ -167,37 +167,32 @@ export default function Dashboard() {
 
   // Helper function to calculate dynamic Y-axis domain with padding and multiples of 50
   const calculateYAxisDomain = (data: any[], keys: string[], paddingPercent: number = 5): number[] => {
-    if (!data || data.length === 0) return [0, 100];
+    if (!data || data.length === 0) return [4800, 6200]; // Fallback for your data range
     
     const allValues = data.flatMap(item => 
-      keys.map(key => parseFloat(item[key]) || 0).filter(val => !isNaN(val))
+      keys.map(key => parseFloat(item[key]) || 0).filter(val => !isNaN(val) && val > 0)
     );
     
-    if (allValues.length === 0) return [0, 100];
+    if (allValues.length === 0) return [4800, 6200]; // Fallback for your data range
     
     const min = Math.min(...allValues);
     const max = Math.max(...allValues);
     const range = max - min;
     
-    // For narrow ranges (like 4970-6050), use more aggressive padding
-    let effectivePadding = paddingPercent;
-    if (range < (max * 0.05)) { // If range is less than 5% of max value
-      effectivePadding = Math.max(paddingPercent, 15); // Use at least 15% padding
-    } else if (range < (max * 0.02)) { // If range is less than 2% of max value
-      effectivePadding = Math.max(paddingPercent, 25); // Use at least 25% padding
-    }
+    console.log('Domain calculation - min:', min, 'max:', max, 'range:', range);
     
-    const padding = (range * effectivePadding) / 100;
+    // Use aggressive padding for narrow ranges like yours
+    const effectivePadding = 20; // Always use 20% padding for clear visualization
+    const padding = Math.max(200, (range * effectivePadding) / 100); // Minimum 200 padding
     
-    // For very narrow ranges, ensure minimum range of at least 200
-    const minRange = 200;
-    const adjustedMin = range < minRange ? min - (minRange - range) / 2 : min - padding;
-    const adjustedMax = range < minRange ? max + (minRange - range) / 2 : max + padding;
+    const adjustedMin = min - padding;
+    const adjustedMax = max + padding;
     
-    // Round to nearest multiples of 50
-    const minDomain = Math.max(0, Math.floor(adjustedMin / 50) * 50);
-    const maxDomain = Math.ceil(adjustedMax / 50) * 50;
+    // Round to clean multiples of 100 for better readability
+    const minDomain = Math.max(0, Math.floor(adjustedMin / 100) * 100);
+    const maxDomain = Math.ceil(adjustedMax / 100) * 100;
     
+    console.log('Final domain:', [minDomain, maxDomain]);
     return [minDomain, maxDomain];
   };
 
@@ -208,13 +203,10 @@ export default function Dashboard() {
     const [min, max] = domain;
     const range = max - min;
     
-    // Determine appropriate step size based on actual domain range, not just data range
-    let stepSize = 50;
-    if (range > 2000) stepSize = 250; // Use 250s for very large ranges (e.g., 500-6000)
-    else if (range > 1000) stepSize = 100; // Use 100s for large ranges  
-    else if (range > 500) stepSize = 100; // Use 100s for medium ranges
-    else if (range > 200) stepSize = 50; // Use 50s for smaller ranges
-    else stepSize = 25; // Use 25s for very narrow ranges
+    // Use consistent 100-unit steps for clean readable charts
+    let stepSize = 100; // Default to 100s for clean spacing
+    if (range > 2000) stepSize = 200; // Use 200s for very large ranges
+    else if (range > 1000) stepSize = 100; // Use 100s for most ranges
     
     // Ensure step size is reasonable multiple
     stepSize = Math.max(50, Math.round(stepSize / 50) * 50);
