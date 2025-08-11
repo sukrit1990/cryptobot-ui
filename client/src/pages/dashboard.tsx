@@ -164,14 +164,14 @@ export default function Dashboard() {
   };
 
   // Helper function to calculate dynamic Y-axis domain with padding and multiples of 50
-  const calculateYAxisDomain = (data: any[], keys: string[], paddingPercent: number = 5) => {
-    if (!data || data.length === 0) return ['auto', 'auto'];
+  const calculateYAxisDomain = (data: any[], keys: string[], paddingPercent: number = 5): number[] => {
+    if (!data || data.length === 0) return [0, 100];
     
     const allValues = data.flatMap(item => 
       keys.map(key => parseFloat(item[key]) || 0).filter(val => !isNaN(val))
     );
     
-    if (allValues.length === 0) return ['auto', 'auto'];
+    if (allValues.length === 0) return [0, 100];
     
     const min = Math.min(...allValues);
     const max = Math.max(...allValues);
@@ -550,7 +550,7 @@ export default function Dashboard() {
                           return dateA.getTime() - dateB.getTime();
                         });
                         const latestProfitEntry = sortedProfitData[sortedProfitData.length - 1];
-                        return formatCurrency(parseFloat(latestProfitEntry?.PROFIT || 0));
+                        return formatCurrency(parseFloat(String(latestProfitEntry?.PROFIT || "0")));
                       }
                       return "No profit data";
                     })()}
@@ -593,10 +593,10 @@ export default function Dashboard() {
                         });
                         
                         const latestIndex = sortedProfitData.length - 1;
-                        const currentProfit = parseFloat(sortedProfitData[latestIndex]?.PROFIT || 0);
-                        const previousProfit = latestIndex > 0 ? parseFloat(sortedProfitData[latestIndex - 1]?.PROFIT || 0) : 0;
+                        const currentProfit = parseFloat(String(sortedProfitData[latestIndex]?.PROFIT || "0"));
+                        const previousProfit = latestIndex > 0 ? parseFloat(String(sortedProfitData[latestIndex - 1]?.PROFIT || "0")) : 0;
                         const dailyIncrement = currentProfit - previousProfit;
-                        return formatCurrency(dailyIncrement);
+                        return formatCurrency(Number(dailyIncrement));
                       }
                       return "No data";
                     })()}
@@ -637,7 +637,7 @@ export default function Dashboard() {
                           const dateB = new Date(b.DATE);
                           return dateA.getTime() - dateB.getTime();
                         });
-                        const latestProfit = parseFloat(sortedProfitData[sortedProfitData.length - 1]?.PROFIT || 0);
+                        const latestProfit = parseFloat(String(sortedProfitData[sortedProfitData.length - 1]?.PROFIT || "0"));
                         const profitPercentage = (latestProfit / portfolio.investedValue) * 100;
                         return `${profitPercentage >= 0 ? '+' : ''}${profitPercentage.toFixed(2)}%`;
                       }
@@ -668,7 +668,7 @@ export default function Dashboard() {
                           const dateB = new Date(b.DATE);
                           return dateA.getTime() - dateB.getTime();
                         });
-                        const latestProfit = parseFloat(sortedProfitData[sortedProfitData.length - 1]?.PROFIT || 0);
+                        const latestProfit = parseFloat(String(sortedProfitData[sortedProfitData.length - 1]?.PROFIT || "0"));
                         const profitPercentage = (latestProfit / portfolio.investedValue) * 100;
                         
                         // Simple IRR calculation: assume profits are realized over time period
