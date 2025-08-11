@@ -460,9 +460,19 @@ export default function Dashboard() {
                       stroke="#9CA3AF"
                       tickLine={{ stroke: '#D1D5DB' }}
                       tickFormatter={(value) => `$${value.toLocaleString()}`}
-                      domain={calculateYAxisDomain(chartData, ['invested', 'current'], 3)}
-                      ticks={generateYAxisTicks(calculateYAxisDomain(chartData, ['invested', 'current'], 3))}
+                      domain={(() => {
+                        const domain = calculateYAxisDomain(chartData, ['invested', 'current'], 3);
+                        console.log('Portfolio Y-axis domain:', domain, 'for data:', chartData.map(d => ({invested: d.invested, current: d.current})));
+                        return domain;
+                      })()}
+                      ticks={(() => {
+                        const domain = calculateYAxisDomain(chartData, ['invested', 'current'], 3);
+                        const ticks = generateYAxisTicks(domain);
+                        console.log('Portfolio Y-axis ticks:', ticks);
+                        return ticks;
+                      })()}
                       interval={0}
+                      type="number"
                     />
                     <Tooltip 
                       formatter={(value: any, name: string) => [
