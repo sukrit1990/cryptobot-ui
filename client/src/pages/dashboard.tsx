@@ -163,6 +163,30 @@ export default function Dashboard() {
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
   };
 
+  // Helper function to calculate dynamic Y-axis domain with padding
+  const calculateYAxisDomain = (data: any[], keys: string[], paddingPercent: number = 5) => {
+    if (!data || data.length === 0) return ['auto', 'auto'];
+    
+    const allValues = data.flatMap(item => 
+      keys.map(key => parseFloat(item[key]) || 0).filter(val => !isNaN(val))
+    );
+    
+    if (allValues.length === 0) return ['auto', 'auto'];
+    
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+    const range = max - min;
+    
+    // If range is very small, add more padding to show variation
+    const effectivePadding = range < (max * 0.01) ? Math.max(paddingPercent, 2) : paddingPercent;
+    const padding = (range * effectivePadding) / 100;
+    
+    return [
+      Math.max(0, min - padding), // Don't go below 0 for currency
+      max + padding
+    ];
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -393,6 +417,7 @@ export default function Dashboard() {
                       stroke="#9CA3AF"
                       tickLine={{ stroke: '#D1D5DB' }}
                       tickFormatter={(value) => `$${value.toLocaleString()}`}
+                      domain={calculateYAxisDomain(chartData, ['invested', 'current'], 3)}
                     />
                     <Tooltip 
                       formatter={(value: any, name: string) => [
@@ -705,6 +730,14 @@ export default function Dashboard() {
                           tick={{ fontSize: 10 }}
                           stroke="#6B7280"
                           tickFormatter={(value) => `$${value.toLocaleString()}`}
+                          domain={(() => {
+                            // Calculate domain for profit data
+                            const aggregatedData = aggregateDataByPeriod(profitData.profit, profitTimeView);
+                            const profitChartData = aggregatedData.map((item: any) => ({
+                              PROFIT: parseFloat(item.PROFIT || 0)
+                            }));
+                            return calculateYAxisDomain(profitChartData, ['PROFIT'], 10);
+                          })()}
                         />
                         <Tooltip 
                           formatter={(value: any) => [formatCurrency(value), 'Cumulative Profit']}
