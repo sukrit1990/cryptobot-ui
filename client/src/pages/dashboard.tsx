@@ -188,18 +188,28 @@ export default function Dashboard() {
     return [minDomain, maxDomain];
   };
 
-  // Helper function to generate Y-axis ticks at multiples of 50
+  // Helper function to generate Y-axis ticks at smart multiples of 50
   const generateYAxisTicks = (domain: number[]) => {
     if (!Array.isArray(domain) || domain.length !== 2) return [];
     
     const [min, max] = domain;
+    const range = max - min;
+    
+    // Determine appropriate step size (multiples of 50)
+    let stepSize = 50;
+    if (range > 1000) stepSize = 100; // Use 100s for large ranges
+    else if (range > 500) stepSize = 50; // Use 50s for medium ranges
+    else if (range > 200) stepSize = 50; // Use 50s for smaller ranges
+    else stepSize = 50; // Default to 50
+    
+    // Ensure step size is divisible by 50
+    stepSize = Math.max(50, Math.round(stepSize / 50) * 50);
+    
     const ticks = [];
+    const startTick = Math.ceil(min / stepSize) * stepSize;
     
-    // Start from the first multiple of 50 >= min
-    const startTick = Math.ceil(min / 50) * 50;
-    
-    // Generate ticks at multiples of 50
-    for (let tick = startTick; tick <= max; tick += 50) {
+    // Generate 4-6 ticks max for clean appearance
+    for (let tick = startTick; tick <= max && ticks.length < 6; tick += stepSize) {
       ticks.push(tick);
     }
     
