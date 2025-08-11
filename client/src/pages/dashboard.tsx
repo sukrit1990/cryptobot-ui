@@ -163,7 +163,7 @@ export default function Dashboard() {
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
   };
 
-  // Helper function to calculate dynamic Y-axis domain with padding
+  // Helper function to calculate dynamic Y-axis domain with padding and multiples of 50
   const calculateYAxisDomain = (data: any[], keys: string[], paddingPercent: number = 5) => {
     if (!data || data.length === 0) return ['auto', 'auto'];
     
@@ -181,10 +181,11 @@ export default function Dashboard() {
     const effectivePadding = range < (max * 0.01) ? Math.max(paddingPercent, 2) : paddingPercent;
     const padding = (range * effectivePadding) / 100;
     
-    return [
-      Math.max(0, min - padding), // Don't go below 0 for currency
-      max + padding
-    ];
+    // Round to nearest multiples of 50
+    const minDomain = Math.max(0, Math.floor((min - padding) / 50) * 50);
+    const maxDomain = Math.ceil((max + padding) / 50) * 50;
+    
+    return [minDomain, maxDomain];
   };
 
   return (
@@ -418,6 +419,8 @@ export default function Dashboard() {
                       tickLine={{ stroke: '#D1D5DB' }}
                       tickFormatter={(value) => `$${value.toLocaleString()}`}
                       domain={calculateYAxisDomain(chartData, ['invested', 'current'], 3)}
+                      interval={0}
+                      tickCount={6}
                     />
                     <Tooltip 
                       formatter={(value: any, name: string) => [
@@ -738,6 +741,8 @@ export default function Dashboard() {
                             }));
                             return calculateYAxisDomain(profitChartData, ['PROFIT'], 10);
                           })()}
+                          interval={0}
+                          tickCount={6}
                         />
                         <Tooltip 
                           formatter={(value: any) => [formatCurrency(value), 'Cumulative Profit']}
