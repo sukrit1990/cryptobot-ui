@@ -142,14 +142,16 @@ export default function Dashboard() {
     return Object.values(aggregated);
   };
 
-  // Format data for the portfolio chart
+  // Format data for the portfolio chart - filter out very low investment amounts for better scaling
   const chartData = Array.isArray(historyData) && historyData.length > 0 
-    ? aggregateDataByPeriod(historyData, portfolioTimeView).map((point: any) => ({
-        date: new Date(point.timestamp || point.date).toLocaleDateString(),
-        invested: point.invested || 0,
-        current: point.current || point.value || 0,
-        timestamp: point.timestamp || point.date
-      })) 
+    ? aggregateDataByPeriod(historyData, portfolioTimeView)
+        .filter((point: any) => (point.invested || 0) >= 1000) // Filter out data points with less than $1000 invested
+        .map((point: any) => ({
+          date: new Date(point.timestamp || point.date).toLocaleDateString(),
+          invested: point.invested || 0,
+          current: point.current || point.value || 0,
+          timestamp: point.timestamp || point.date
+        })) 
     : [];
 
   const formatCurrency = (amount: number) => {
@@ -188,21 +190,21 @@ export default function Dashboard() {
     return [minDomain, maxDomain];
   };
 
-  // Helper function to generate Y-axis ticks at smart multiples of 50
+  // Helper function to generate Y-axis ticks at smart multiples of 50 (for portfolio chart only)
   const generateYAxisTicks = (domain: number[]) => {
     if (!Array.isArray(domain) || domain.length !== 2) return [];
     
     const [min, max] = domain;
     const range = max - min;
     
-    // Determine appropriate step size (multiples of 50)
+    // Determine appropriate step size (multiples of 50) based on data range
     let stepSize = 50;
-    if (range > 1000) stepSize = 100; // Use 100s for large ranges
+    if (range > 2000) stepSize = 250; // Use 250s for very large ranges (e.g., 500-6000)
+    else if (range > 1000) stepSize = 100; // Use 100s for large ranges  
     else if (range > 500) stepSize = 50; // Use 50s for medium ranges
-    else if (range > 200) stepSize = 50; // Use 50s for smaller ranges
     else stepSize = 50; // Default to 50
     
-    // Ensure step size is divisible by 50
+    // Ensure step size is reasonable multiple
     stepSize = Math.max(50, Math.round(stepSize / 50) * 50);
     
     const ticks = [];
@@ -761,24 +763,6 @@ export default function Dashboard() {
                           tick={{ fontSize: 10 }}
                           stroke="#6B7280"
                           tickFormatter={(value) => `$${value.toLocaleString()}`}
-                          domain={(() => {
-                            // Calculate domain for profit data
-                            const aggregatedData = aggregateDataByPeriod(profitData.profit, profitTimeView);
-                            const profitChartData = aggregatedData.map((item: any) => ({
-                              PROFIT: parseFloat(item.PROFIT || 0)
-                            }));
-                            return calculateYAxisDomain(profitChartData, ['PROFIT'], 10);
-                          })()}
-                          ticks={(() => {
-                            // Generate ticks for profit data
-                            const aggregatedData = aggregateDataByPeriod(profitData.profit, profitTimeView);
-                            const profitChartData = aggregatedData.map((item: any) => ({
-                              PROFIT: parseFloat(item.PROFIT || 0)
-                            }));
-                            const domain = calculateYAxisDomain(profitChartData, ['PROFIT'], 10);
-                            return generateYAxisTicks(domain);
-                          })()}
-                          interval={0}
                         />
                         <Tooltip 
                           formatter={(value: any) => [formatCurrency(value), 'Cumulative Profit']}
