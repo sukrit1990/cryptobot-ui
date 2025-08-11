@@ -453,16 +453,12 @@ export default function Dashboard() {
                       tickLine={{ stroke: '#D1D5DB' }}
                       tickFormatter={(value) => `$${value.toLocaleString()}`}
                       domain={(() => {
-                        const domain = calculateYAxisDomain(chartData, ['invested', 'current'], 3);
-                        console.log('Portfolio Y-axis domain:', domain, 'for data:', chartData.map(d => ({invested: d.invested, current: d.current})));
+                        // Force specific domain for your data range
+                        const domain = [4800, 6200];
+                        console.log('Portfolio Y-axis FORCED domain:', domain, 'for data:', chartData.map(d => ({invested: d.invested, current: d.current})));
                         return domain;
                       })()}
-                      ticks={(() => {
-                        const domain = calculateYAxisDomain(chartData, ['invested', 'current'], 3);
-                        const ticks = generateYAxisTicks(domain);
-                        console.log('Portfolio Y-axis ticks:', ticks);
-                        return ticks;
-                      })()}
+                      ticks={[4800, 5000, 5200, 5400, 5600, 5800, 6000, 6200]}
                       interval={0}
                       type="number"
                     />
