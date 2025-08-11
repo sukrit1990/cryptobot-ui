@@ -166,7 +166,7 @@ export default function Dashboard() {
   };
 
   // Helper function to calculate dynamic Y-axis domain with padding and multiples of 100
-  const calculateYAxisDomain = (data: any[], keys: string[], paddingPercent: number = 10): number[] => {
+  const calculateYAxisDomain = (data: any[], keys: string[], paddingPercent: number = 5): number[] => {
     if (!data || data.length === 0) return [0, 1000];
     
     const allValues = data.flatMap(item => 
@@ -181,8 +181,8 @@ export default function Dashboard() {
     
     console.log('Domain calculation - min:', min, 'max:', max, 'range:', range, 'data:', allValues);
     
-    // Use generous padding to ensure good visualization
-    const padding = Math.max(300, (range * paddingPercent) / 100); // Minimum 300 padding or percentage-based
+    // Use 5% padding of data range
+    const padding = (range * paddingPercent) / 100;
     
     const adjustedMin = Math.max(0, min - padding);
     const adjustedMax = max + padding;
@@ -195,30 +195,43 @@ export default function Dashboard() {
     return [minDomain, maxDomain];
   };
 
-  // Helper function to generate Y-axis ticks at smart multiples of 50 (for portfolio chart only)
+  // Helper function to generate Y-axis ticks including domain boundaries
   const generateYAxisTicks = (domain: number[]) => {
     if (!Array.isArray(domain) || domain.length !== 2) return [];
     
     const [min, max] = domain;
     const range = max - min;
     
-    // Use consistent 100-unit steps for clean readable charts
+    // Use consistent step sizing based on range
     let stepSize = 100; // Default to 100s for clean spacing
     if (range > 2000) stepSize = 200; // Use 200s for very large ranges
     else if (range > 1000) stepSize = 100; // Use 100s for most ranges
-    
-    // Ensure step size is reasonable multiple
-    stepSize = Math.max(50, Math.round(stepSize / 50) * 50);
+    else if (range > 500) stepSize = 50; // Use 50s for medium ranges
     
     const ticks = [];
-    const startTick = Math.ceil(min / stepSize) * stepSize;
     
-    // Generate 4-6 ticks max for clean appearance
-    for (let tick = startTick; tick <= max && ticks.length < 6; tick += stepSize) {
-      ticks.push(tick);
+    // Always include the minimum domain value
+    ticks.push(min);
+    
+    // Generate intermediate ticks
+    let current = Math.ceil(min / stepSize) * stepSize;
+    while (current < max) {
+      if (current > min) { // Don't duplicate the min value
+        ticks.push(current);
+      }
+      current += stepSize;
     }
     
-    return ticks;
+    // Always include the maximum domain value (if not already included)
+    if (ticks[ticks.length - 1] !== max) {
+      ticks.push(max);
+    }
+    
+    // Remove duplicates and sort
+    const uniqueTicks = [...new Set(ticks)].sort((a, b) => a - b);
+    
+    console.log('Generated Y-axis ticks with boundaries:', uniqueTicks);
+    return uniqueTicks;
   };
 
   return (
@@ -452,12 +465,12 @@ export default function Dashboard() {
                       tickLine={{ stroke: '#D1D5DB' }}
                       tickFormatter={(value) => `$${value.toLocaleString()}`}
                       domain={(() => {
-                        const domain = calculateYAxisDomain(chartData, ['invested', 'current'], 10);
+                        const domain = calculateYAxisDomain(chartData, ['invested', 'current'], 5);
                         console.log('Portfolio Y-axis dynamic domain:', domain, 'for data:', chartData.map(d => ({invested: d.invested, current: d.current})));
                         return domain;
                       })()}
                       ticks={(() => {
-                        const domain = calculateYAxisDomain(chartData, ['invested', 'current'], 10);
+                        const domain = calculateYAxisDomain(chartData, ['invested', 'current'], 5);
                         const ticks = generateYAxisTicks(domain);
                         console.log('Portfolio Y-axis dynamic ticks:', ticks);
                         return ticks;
