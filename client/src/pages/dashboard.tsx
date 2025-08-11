@@ -165,34 +165,33 @@ export default function Dashboard() {
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
   };
 
-  // Helper function to calculate dynamic Y-axis domain with padding and multiples of 50
-  const calculateYAxisDomain = (data: any[], keys: string[], paddingPercent: number = 5): number[] => {
-    if (!data || data.length === 0) return [4800, 6200]; // Fallback for your data range
+  // Helper function to calculate dynamic Y-axis domain with padding and multiples of 100
+  const calculateYAxisDomain = (data: any[], keys: string[], paddingPercent: number = 10): number[] => {
+    if (!data || data.length === 0) return [0, 1000];
     
     const allValues = data.flatMap(item => 
       keys.map(key => parseFloat(item[key]) || 0).filter(val => !isNaN(val) && val > 0)
     );
     
-    if (allValues.length === 0) return [4800, 6200]; // Fallback for your data range
+    if (allValues.length === 0) return [0, 1000];
     
     const min = Math.min(...allValues);
     const max = Math.max(...allValues);
     const range = max - min;
     
-    console.log('Domain calculation - min:', min, 'max:', max, 'range:', range);
+    console.log('Domain calculation - min:', min, 'max:', max, 'range:', range, 'data:', allValues);
     
-    // Use aggressive padding for narrow ranges like yours
-    const effectivePadding = 20; // Always use 20% padding for clear visualization
-    const padding = Math.max(200, (range * effectivePadding) / 100); // Minimum 200 padding
+    // Use generous padding to ensure good visualization
+    const padding = Math.max(300, (range * paddingPercent) / 100); // Minimum 300 padding or percentage-based
     
-    const adjustedMin = min - padding;
+    const adjustedMin = Math.max(0, min - padding);
     const adjustedMax = max + padding;
     
-    // Round to clean multiples of 100 for better readability
-    const minDomain = Math.max(0, Math.floor(adjustedMin / 100) * 100);
+    // Round to clean multiples of 100 for better readability  
+    const minDomain = Math.floor(adjustedMin / 100) * 100;
     const maxDomain = Math.ceil(adjustedMax / 100) * 100;
     
-    console.log('Final domain:', [minDomain, maxDomain]);
+    console.log('Final dynamic domain:', [minDomain, maxDomain]);
     return [minDomain, maxDomain];
   };
 
@@ -453,12 +452,16 @@ export default function Dashboard() {
                       tickLine={{ stroke: '#D1D5DB' }}
                       tickFormatter={(value) => `$${value.toLocaleString()}`}
                       domain={(() => {
-                        // Force specific domain for your data range
-                        const domain = [4800, 6200];
-                        console.log('Portfolio Y-axis FORCED domain:', domain, 'for data:', chartData.map(d => ({invested: d.invested, current: d.current})));
+                        const domain = calculateYAxisDomain(chartData, ['invested', 'current'], 10);
+                        console.log('Portfolio Y-axis dynamic domain:', domain, 'for data:', chartData.map(d => ({invested: d.invested, current: d.current})));
                         return domain;
                       })()}
-                      ticks={[4800, 5000, 5200, 5400, 5600, 5800, 6000, 6200]}
+                      ticks={(() => {
+                        const domain = calculateYAxisDomain(chartData, ['invested', 'current'], 10);
+                        const ticks = generateYAxisTicks(domain);
+                        console.log('Portfolio Y-axis dynamic ticks:', ticks);
+                        return ticks;
+                      })()}
                       interval={0}
                       type="number"
                     />
