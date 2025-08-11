@@ -215,7 +215,7 @@ export default function Dashboard() {
             </div>
 
         {/* Portfolio Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 mb-4 sm:mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
           {/* Invested Value */}
           <Card className="shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -268,8 +268,30 @@ export default function Dashboard() {
               <div className={`text-lg sm:text-2xl font-bold ${portfolio.returns >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {portfolio.returns !== 0 ? formatCurrency(portfolio.returns) : "Awaiting API data..."}
               </div>
-              <p className={`text-xs mt-1 ${portfolio.returnsPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {portfolio.returnsPercentage !== 0 ? formatPercentage(portfolio.returnsPercentage) : "Pending calculation"}
+              <p className="text-xs text-gray-500 mt-1">
+                Absolute profit/loss
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Return Percentage */}
+          <Card className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Return %
+              </CardTitle>
+              {portfolio.returnsPercentage >= 0 ? (
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-600" />
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className={`text-lg sm:text-2xl font-bold ${portfolio.returnsPercentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {portfolio.returnsPercentage !== 0 ? formatPercentage(portfolio.returnsPercentage) : "Awaiting API data..."}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Percentage return
               </p>
             </CardContent>
           </Card>
