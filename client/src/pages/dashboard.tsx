@@ -188,6 +188,24 @@ export default function Dashboard() {
     return [minDomain, maxDomain];
   };
 
+  // Helper function to generate Y-axis ticks at multiples of 50
+  const generateYAxisTicks = (domain: number[]) => {
+    if (!Array.isArray(domain) || domain.length !== 2) return [];
+    
+    const [min, max] = domain;
+    const ticks = [];
+    
+    // Start from the first multiple of 50 >= min
+    const startTick = Math.ceil(min / 50) * 50;
+    
+    // Generate ticks at multiples of 50
+    for (let tick = startTick; tick <= max; tick += 50) {
+      ticks.push(tick);
+    }
+    
+    return ticks;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -419,8 +437,8 @@ export default function Dashboard() {
                       tickLine={{ stroke: '#D1D5DB' }}
                       tickFormatter={(value) => `$${value.toLocaleString()}`}
                       domain={calculateYAxisDomain(chartData, ['invested', 'current'], 3)}
+                      ticks={generateYAxisTicks(calculateYAxisDomain(chartData, ['invested', 'current'], 3))}
                       interval={0}
-                      tickCount={6}
                     />
                     <Tooltip 
                       formatter={(value: any, name: string) => [
@@ -741,8 +759,16 @@ export default function Dashboard() {
                             }));
                             return calculateYAxisDomain(profitChartData, ['PROFIT'], 10);
                           })()}
+                          ticks={(() => {
+                            // Generate ticks for profit data
+                            const aggregatedData = aggregateDataByPeriod(profitData.profit, profitTimeView);
+                            const profitChartData = aggregatedData.map((item: any) => ({
+                              PROFIT: parseFloat(item.PROFIT || 0)
+                            }));
+                            const domain = calculateYAxisDomain(profitChartData, ['PROFIT'], 10);
+                            return generateYAxisTicks(domain);
+                          })()}
                           interval={0}
-                          tickCount={6}
                         />
                         <Tooltip 
                           formatter={(value: any) => [formatCurrency(value), 'Cumulative Profit']}
