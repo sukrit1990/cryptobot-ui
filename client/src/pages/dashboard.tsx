@@ -446,7 +446,7 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart 
                     data={chartData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    margin={{ top: 20, right: 10, left: 5, bottom: 5 }}
                   >
                     <defs>
                       <linearGradient id="investedGradient" x1="0" y1="0" x2="0" y2="1">
@@ -573,7 +573,7 @@ export default function Dashboard() {
             </div>
 
             {/* Profit Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
               {/* Total Profit */}
               <Card className="shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -785,18 +785,21 @@ export default function Dashboard() {
                 ) : profitData && profitData.profit?.length > 0 ? (
                   <div className="h-64 sm:h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={(() => {
-                        // Aggregate profit data by selected time period
-                        const aggregatedData = aggregateDataByPeriod(profitData.profit, profitTimeView);
-                        
-                        const processedData = aggregatedData.map((item: any) => ({
-                          ...item,
-                          PROFIT: parseFloat(item.PROFIT || 0)
-                        }));
-                        
-                        // Sample data to prevent thick lines - max 50 points for clean appearance
-                        return sampleDataPoints(processedData, 50);
-                      })()}>
+                      <LineChart 
+                        data={(() => {
+                          // Aggregate profit data by selected time period
+                          const aggregatedData = aggregateDataByPeriod(profitData.profit, profitTimeView);
+                          
+                          const processedData = aggregatedData.map((item: any) => ({
+                            ...item,
+                            PROFIT: parseFloat(item.PROFIT || 0)
+                          }));
+                          
+                          // Sample data to prevent thick lines - max 50 points for clean appearance
+                          return sampleDataPoints(processedData, 50);
+                        })()}
+                        margin={{ top: 20, right: 10, left: 5, bottom: 5 }}
+                      >
                         <CartesianGrid 
                           strokeDasharray="2 2" 
                           stroke="#E5E7EB" 
