@@ -468,8 +468,8 @@ export default function Dashboard() {
                       tick={{ fontSize: 11, fill: '#6B7280' }}
                       stroke="#9CA3AF"
                       tickLine={{ stroke: '#D1D5DB' }}
-                      interval="preserveStartEnd"
-                      minTickGap={50}
+                      interval={Math.max(0, Math.floor(chartData.length / 6))}
+                      minTickGap={60}
                       angle={-45}
                       textAnchor="end"
                       height={80}
@@ -514,18 +514,18 @@ export default function Dashboard() {
                       type="monotone" 
                       dataKey="invested" 
                       stroke="#F59E0B" 
-                      strokeWidth={3}
+                      strokeWidth={2}
                       strokeDasharray="8 4"
                       dot={{ 
                         fill: '#F59E0B', 
-                        strokeWidth: 2, 
-                        r: 4,
+                        strokeWidth: 1, 
+                        r: 1.5,
                         stroke: '#FFFFFF'
                       }}
                       activeDot={{ 
-                        r: 7, 
+                        r: 4, 
                         stroke: '#F59E0B', 
-                        strokeWidth: 3,
+                        strokeWidth: 2,
                         fill: '#FFFFFF'
                       }}
                       name="Invested Amount"
@@ -534,17 +534,17 @@ export default function Dashboard() {
                       type="monotone" 
                       dataKey="current" 
                       stroke="#10B981" 
-                      strokeWidth={4}
+                      strokeWidth={2.5}
                       dot={{ 
                         fill: '#10B981', 
-                        strokeWidth: 2, 
-                        r: 5,
+                        strokeWidth: 1, 
+                        r: 1.5,
                         stroke: '#FFFFFF'
                       }}
                       activeDot={{ 
-                        r: 8, 
+                        r: 4, 
                         stroke: '#10B981', 
-                        strokeWidth: 3,
+                        strokeWidth: 2,
                         fill: '#FFFFFF'
                       }}
                       name="Current Value"
