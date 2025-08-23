@@ -142,16 +142,44 @@ export default function Dashboard() {
     return Object.values(aggregated);
   };
 
-  // Format data for the portfolio chart - filter out very low investment amounts for better scaling
+  // Helper function to sample data points for cleaner chart appearance
+  const sampleDataPoints = (data: any[], maxPoints: number) => {
+    if (data.length <= maxPoints) return data;
+    
+    const step = Math.floor(data.length / maxPoints);
+    const sampled = [];
+    
+    // Always include first point
+    sampled.push(data[0]);
+    
+    // Sample middle points
+    for (let i = step; i < data.length - step; i += step) {
+      sampled.push(data[i]);
+    }
+    
+    // Always include last point
+    if (data.length > 1) {
+      sampled.push(data[data.length - 1]);
+    }
+    
+    return sampled;
+  };
+
+  // Format data for the portfolio chart - filter and sample for clean appearance
   const chartData = Array.isArray(historyData) && historyData.length > 0 
-    ? aggregateDataByPeriod(historyData, portfolioTimeView)
-        .filter((point: any) => (point.invested || 0) >= 1000) // Filter out data points with less than $1000 invested
-        .map((point: any) => ({
-          date: new Date(point.timestamp || point.date).toLocaleDateString(),
-          invested: point.invested || 0,
-          current: point.current || point.value || 0,
-          timestamp: point.timestamp || point.date
-        })) 
+    ? (() => {
+        const processed = aggregateDataByPeriod(historyData, portfolioTimeView)
+          .filter((point: any) => (point.invested || 0) >= 1000) // Filter out data points with less than $1000 invested
+          .map((point: any) => ({
+            date: new Date(point.timestamp || point.date).toLocaleDateString(),
+            invested: point.invested || 0,
+            current: point.current || point.value || 0,
+            timestamp: point.timestamp || point.date
+          }));
+        
+        // Sample data to prevent thick lines - max 50 points for clean appearance
+        return sampleDataPoints(processed, 50);
+      })()
     : [];
 
   const formatCurrency = (amount: number) => {
@@ -761,10 +789,13 @@ export default function Dashboard() {
                         // Aggregate profit data by selected time period
                         const aggregatedData = aggregateDataByPeriod(profitData.profit, profitTimeView);
                         
-                        return aggregatedData.map((item: any) => ({
+                        const processedData = aggregatedData.map((item: any) => ({
                           ...item,
                           PROFIT: parseFloat(item.PROFIT || 0)
                         }));
+                        
+                        // Sample data to prevent thick lines - max 50 points for clean appearance
+                        return sampleDataPoints(processedData, 50);
                       })()}>
                         <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                         <XAxis 
