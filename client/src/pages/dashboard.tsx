@@ -195,51 +195,25 @@ export default function Dashboard() {
     return [minDomain, maxDomain];
   };
 
-  // Helper function to generate Y-axis ticks with optimal spacing
+  // Helper function to generate evenly spaced Y-axis ticks
   const generateYAxisTicks = (domain: number[]) => {
     if (!Array.isArray(domain) || domain.length !== 2) return [];
     
     const [min, max] = domain;
     const range = max - min;
     
-    // Calculate optimal number of ticks to prevent stacking (3-5 ticks ideal)
-    const targetTickCount = 4;
-    let stepSize = Math.ceil(range / (targetTickCount - 1));
-    
-    // Round step size to clean multiples
-    if (stepSize >= 100) {
-      stepSize = Math.ceil(stepSize / 100) * 100;
-    } else if (stepSize >= 50) {
-      stepSize = Math.ceil(stepSize / 50) * 50;
-    } else if (stepSize >= 25) {
-      stepSize = Math.ceil(stepSize / 25) * 25;
-    }
+    // Generate exactly 5 evenly spaced ticks for consistent spacing
+    const tickCount = 5;
+    const step = range / (tickCount - 1);
     
     const ticks = [];
-    
-    // Start from a clean multiple near min
-    let current = Math.floor(min / stepSize) * stepSize;
-    if (current < min) current += stepSize;
-    
-    // Generate ticks within the domain
-    while (current <= max && ticks.length < 6) {
-      ticks.push(current);
-      current += stepSize;
+    for (let i = 0; i < tickCount; i++) {
+      const tickValue = min + (step * i);
+      ticks.push(Math.round(tickValue));
     }
     
-    // Ensure we have at least min and max if not already included
-    if (ticks.length === 0 || ticks[0] > min) {
-      ticks.unshift(min);
-    }
-    if (ticks[ticks.length - 1] < max) {
-      ticks.push(max);
-    }
-    
-    // Remove duplicates and sort
-    const uniqueTicks = [...new Set(ticks)].sort((a, b) => a - b);
-    
-    console.log('Generated optimally spaced Y-axis ticks:', uniqueTicks);
-    return uniqueTicks;
+    console.log('Generated evenly spaced Y-axis ticks:', ticks);
+    return ticks;
   };
 
   return (
