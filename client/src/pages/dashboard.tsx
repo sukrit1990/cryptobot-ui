@@ -440,6 +440,11 @@ export default function Dashboard() {
                       tick={{ fontSize: 11, fill: '#6B7280' }}
                       stroke="#9CA3AF"
                       tickLine={{ stroke: '#D1D5DB' }}
+                      interval="preserveStartEnd"
+                      minTickGap={50}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                     />
                     <YAxis 
                       tick={{ fontSize: 11, fill: '#6B7280' }}
