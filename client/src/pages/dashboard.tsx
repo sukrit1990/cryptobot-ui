@@ -435,14 +435,14 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {historyLoading ? (
-              <div className="h-48 sm:h-80 flex items-center justify-center">
+              <div className="h-64 sm:h-80 flex items-center justify-center">
                 <div className="text-center">
                   <RefreshCw className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mx-auto mb-2 text-blue-600" />
                   <p className="text-sm sm:text-base text-gray-500">Loading portfolio data...</p>
                 </div>
               </div>
             ) : chartData.length > 0 ? (
-              <div className="h-48 sm:h-80">
+              <div className="h-64 sm:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart 
                     data={chartData}
@@ -553,7 +553,7 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-48 sm:h-80 flex items-center justify-center">
+              <div className="h-64 sm:h-80 flex items-center justify-center">
                 <div className="text-center">
                   <BarChart3 className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-gray-300" />
                   <p className="text-gray-500 text-base sm:text-lg font-medium">No portfolio data available</p>
@@ -776,14 +776,14 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 {profitLoading ? (
-                  <div className="h-48 sm:h-80 flex items-center justify-center">
+                  <div className="h-64 sm:h-80 flex items-center justify-center">
                     <div className="text-center">
                       <RefreshCw className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mx-auto mb-2 text-green-600" />
                       <p className="text-sm sm:text-base text-gray-500">Loading profit data...</p>
                     </div>
                   </div>
                 ) : profitData && profitData.profit?.length > 0 ? (
-                  <div className="h-48 sm:h-80">
+                  <div className="h-64 sm:h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={(() => {
                         // Aggregate profit data by selected time period
@@ -829,7 +829,7 @@ export default function Dashboard() {
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="h-48 sm:h-80 flex items-center justify-center">
+                  <div className="h-64 sm:h-80 flex items-center justify-center">
                     <div className="text-center">
                       <PiggyBank className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-gray-300" />
                       <p className="text-gray-500 text-base sm:text-lg font-medium">No profit data available</p>
