@@ -583,7 +583,7 @@ export default function Dashboard() {
                   <PiggyBank className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-lg sm:text-2xl font-bold text-gray-900">
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900">
                     {(() => {
                       if (profitData && profitData.profit?.length > 0) {
                         // Sort profit data by date first to get the actual latest entry
@@ -671,7 +671,7 @@ export default function Dashboard() {
                   <TrendingUp className="h-4 w-4 text-purple-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900">
                     {(() => {
                       if (profitData && profitData.profit?.length > 0 && portfolio.investedValue > 0) {
                         // Sort profit data by date first to get accurate latest entry
@@ -702,7 +702,7 @@ export default function Dashboard() {
                   <BarChart3 className="h-4 w-4 text-orange-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900">
                     {(() => {
                       if (profitData && profitData.profit?.length > 0 && portfolio.investedValue > 0) {
                         // Sort profit data by date first to get accurate latest entry
