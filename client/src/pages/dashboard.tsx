@@ -821,9 +821,9 @@ export default function Dashboard() {
                           type="monotone"
                           dataKey="PROFIT" 
                           stroke="#10B981"
-                          strokeWidth={3}
-                          dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 2 }}
+                          strokeWidth={2.5}
+                          dot={{ fill: '#10B981', strokeWidth: 1, r: 1.5 }}
+                          activeDot={{ r: 4, stroke: '#10B981', strokeWidth: 2 }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
