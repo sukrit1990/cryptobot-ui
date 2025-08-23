@@ -797,16 +797,36 @@ export default function Dashboard() {
                         // Sample data to prevent thick lines - max 50 points for clean appearance
                         return sampleDataPoints(processedData, 50);
                       })()}>
-                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <CartesianGrid 
+                          strokeDasharray="2 2" 
+                          stroke="#E5E7EB" 
+                          opacity={0.6}
+                        />
                         <XAxis 
                           dataKey="DATE" 
-                          tick={{ fontSize: 10 }}
-                          stroke="#6B7280"
+                          tick={{ fontSize: 11, fill: '#6B7280' }}
+                          stroke="#9CA3AF"
+                          tickLine={{ stroke: '#D1D5DB' }}
+                          interval={(() => {
+                            const aggregatedData = aggregateDataByPeriod(profitData.profit, profitTimeView);
+                            const processedData = aggregatedData.map((item: any) => ({
+                              ...item,
+                              PROFIT: parseFloat(item.PROFIT || 0)
+                            }));
+                            const sampledData = sampleDataPoints(processedData, 50);
+                            return Math.max(0, Math.floor(sampledData.length / 6));
+                          })()}
+                          minTickGap={60}
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
                         />
                         <YAxis 
-                          tick={{ fontSize: 10 }}
-                          stroke="#6B7280"
+                          tick={{ fontSize: 11, fill: '#6B7280' }}
+                          stroke="#9CA3AF"
+                          tickLine={{ stroke: '#D1D5DB' }}
                           tickFormatter={(value) => `$${value.toLocaleString()}`}
+                          width={80}
                         />
                         <Tooltip 
                           formatter={(value: any) => [formatCurrency(value), 'Cumulative Profit']}
