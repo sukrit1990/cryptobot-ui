@@ -195,42 +195,50 @@ export default function Dashboard() {
     return [minDomain, maxDomain];
   };
 
-  // Helper function to generate Y-axis ticks including domain boundaries
+  // Helper function to generate Y-axis ticks with optimal spacing
   const generateYAxisTicks = (domain: number[]) => {
     if (!Array.isArray(domain) || domain.length !== 2) return [];
     
     const [min, max] = domain;
     const range = max - min;
     
-    // Use consistent step sizing based on range
-    let stepSize = 100; // Default to 100s for clean spacing
-    if (range > 2000) stepSize = 200; // Use 200s for very large ranges
-    else if (range > 1000) stepSize = 100; // Use 100s for most ranges
-    else if (range > 500) stepSize = 50; // Use 50s for medium ranges
+    // Calculate optimal number of ticks to prevent stacking (3-5 ticks ideal)
+    const targetTickCount = 4;
+    let stepSize = Math.ceil(range / (targetTickCount - 1));
+    
+    // Round step size to clean multiples
+    if (stepSize >= 100) {
+      stepSize = Math.ceil(stepSize / 100) * 100;
+    } else if (stepSize >= 50) {
+      stepSize = Math.ceil(stepSize / 50) * 50;
+    } else if (stepSize >= 25) {
+      stepSize = Math.ceil(stepSize / 25) * 25;
+    }
     
     const ticks = [];
     
-    // Always include the minimum domain value
-    ticks.push(min);
+    // Start from a clean multiple near min
+    let current = Math.floor(min / stepSize) * stepSize;
+    if (current < min) current += stepSize;
     
-    // Generate intermediate ticks
-    let current = Math.ceil(min / stepSize) * stepSize;
-    while (current < max) {
-      if (current > min) { // Don't duplicate the min value
-        ticks.push(current);
-      }
+    // Generate ticks within the domain
+    while (current <= max && ticks.length < 6) {
+      ticks.push(current);
       current += stepSize;
     }
     
-    // Always include the maximum domain value (if not already included)
-    if (ticks[ticks.length - 1] !== max) {
+    // Ensure we have at least min and max if not already included
+    if (ticks.length === 0 || ticks[0] > min) {
+      ticks.unshift(min);
+    }
+    if (ticks[ticks.length - 1] < max) {
       ticks.push(max);
     }
     
     // Remove duplicates and sort
     const uniqueTicks = [...new Set(ticks)].sort((a, b) => a - b);
     
-    console.log('Generated Y-axis ticks with boundaries:', uniqueTicks);
+    console.log('Generated optimally spaced Y-axis ticks:', uniqueTicks);
     return uniqueTicks;
   };
 
@@ -475,8 +483,8 @@ export default function Dashboard() {
                         console.log('Portfolio Y-axis dynamic ticks:', ticks);
                         return ticks;
                       })()}
-                      interval={0}
                       type="number"
+                      width={80}
                     />
                     <Tooltip 
                       formatter={(value: any, name: string) => [
