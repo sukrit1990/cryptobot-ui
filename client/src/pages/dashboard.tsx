@@ -446,7 +446,7 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart 
                     data={chartData}
-                    margin={{ top: 20, right: 10, left: 5, bottom: 5 }}
+                    margin={{ top: 20, right: 5, left: 0, bottom: 5 }}
                   >
                     <defs>
                       <linearGradient id="investedGradient" x1="0" y1="0" x2="0" y2="1">
@@ -573,7 +573,7 @@ export default function Dashboard() {
             </div>
 
             {/* Profit Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-8">
               {/* Total Profit */}
               <Card className="shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -798,7 +798,7 @@ export default function Dashboard() {
                           // Sample data to prevent thick lines - max 50 points for clean appearance
                           return sampleDataPoints(processedData, 50);
                         })()}
-                        margin={{ top: 20, right: 10, left: 5, bottom: 5 }}
+                        margin={{ top: 20, right: 5, left: 0, bottom: 5 }}
                       >
                         <CartesianGrid 
                           strokeDasharray="2 2" 
