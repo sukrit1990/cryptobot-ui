@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoInvest Pro - Intelligent Crypto Investment Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E40AF',
+                        'primary-light': '#3B82F6',
+                        success: '#10B981',
+                        danger: '#EF4444',
+                        warning: '#F59E0B',
+                        'gray-950': '#0F172A',
+                        'gray-850': '#1E293B'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 font-sans">
+
+    <!-- @COMPONENT: AuthContainer [manages sign-in/sign-up state] -->
+    <div id="auth-container" class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <!-- Logo and Header -->
+            <div class="text-center">
+                <div class="mx-auto h-16 w-16 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center">
+                    <i class="fas fa-chart-line text-white text-2xl"></i>
+                </div>
+                <h2 class="mt-6 text-3xl font-bold text-gray-900">CryptoInvest Pro</h2>
+                <p class="mt-2 text-sm text-gray-600">Intelligent crypto investment platform</p>
+            </div>
+
+            <!-- Sign Up Form -->
+            <div id="signup-form" class="bg-white rounded-xl shadow-lg p-8">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-semibold text-gray-900">Create Account</h3>
+                    <p class="text-gray-600 mt-2">Start your intelligent crypto investment journey</p>
+                </div>
+                
+                <form class="space-y-4" data-implementation="Submit to backend API for validation">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                        <input type="text" data-bind="user.name" placeholder="John Doe" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                        <input type="email" data-bind="user.email" placeholder="john@example.com" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
+                    </div>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="font-medium text-blue-900 mb-3 flex items-center">
+                            <i class="fas fa-shield-alt mr-2"></i>
+                            Gemini API Credentials
+                        </h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-blue-800 mb-1">API Key</label>
+                                <input type="password" data-bind="user.apiKey" placeholder="Enter your Gemini API key" class="w-full px-3 py-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-blue-800 mb-1">API Secret</label>
+                                <input type="password" data-bind="user.apiSecret" placeholder="Enter your Gemini API secret" class="w-full px-3 py-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+                            </div>
+                        </div>
+                        <p class="text-xs text-blue-600 mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Your API credentials are encrypted and stored securely
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Initial Investment (SGD)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-gray-500">S$</span>
+                            <input type="number" data-bind="user.funds" placeholder="10000" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Minimum investment: S$1,000</p>
+                    </div>
+                    
+                    <button type="submit" data-event="click:handleSignUp" class="w-full bg-gradient-to-r from-primary to-primary-light text-white py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
+                        Create Account & Validate Credentials
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <button onclick="toggleAuthMode()" class="text-primary hover:text-primary-light font-medium">
+                        Already have an account? Sign In
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sign In Form -->
+            <div id="signin-form" class="bg-white rounded-xl shadow-lg p-8 hidden">
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-semibold text-gray-900">Welcome Back</h3>
+                    <p class="text-gray-600 mt-2">Sign in to your investment dashboard</p>
+                </div>
+                
+                <form class="space-y-4" data-implementation="Submit to authentication API">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                        <input type="email" data-bind="auth.email" placeholder="john@example.com" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input type="password" data-bind="auth.password" placeholder="Enter your password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
+                    </div>
+                    
+                    <button type="submit" data-event="click:handleSignIn" class="w-full bg-gradient-to-r from-primary to-primary-light text-white py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity">
+                        Sign In to Dashboard
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <button onclick="toggleAuthMode()" class="text-primary hover:text-primary-light font-medium">
+                        Don't have an account? Sign Up
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: AuthContainer -->
+
+    <!-- @COMPONENT: MainApp [main application container with sidebar navigation] -->
+    <div id="main-app" class="hidden min-h-screen bg-gray-50">
+        <!-- Sidebar -->
+        <div class="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
+            <div class="flex flex-col h-full">
+                <!-- Logo -->
+                <div class="flex items-center px-6 py-6 border-b border-gray-200">
+                    <div class="h-10 w-10 bg-gradient-to-br from-primary to-primary-light rounded-lg flex items-center justify-center mr-3">
+                        <i class="fas fa-chart-line text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">CryptoInvest Pro</h2>
+                        <p class="text-xs text-gray-500">Investment Dashboard</p>
+                    </div>
+                </div>
+                
+                <!-- Navigation -->
+                <nav class="flex-1 px-4 py-6 space-y-2">
+                    <button onclick="showDashboard()" id="nav-dashboard" class="nav-item active w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors">
+                        <i class="fas fa-chart-area mr-3"></i>
+                        Dashboard
+                    </button>
+                    <button onclick="showSettings()" id="nav-settings" class="nav-item w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors">
+                        <i class="fas fa-cog mr-3"></i>
+                        Settings
+                    </button>
+                </nav>
+                
+                <!-- User Info -->
+                <div class="border-t border-gray-200 px-4 py-4">
+                    <div class="flex items-center">
+                        <div class="h-10 w-10 bg-gray-300 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-gray-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-900" data-bind="user.name">John Doe</p>
+                            <button onclick="signOut()" class="text-xs text-gray-500 hover:text-red-600">Sign Out</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="ml-64 p-8">
+            <!-- Dashboard View -->
+            <div id="dashboard-view">
+                <!-- Header -->
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900">Investment Dashboard</h1>
+                    <p class="text-gray-600 mt-2">Track your crypto portfolio performance</p>
+                </div>
+
+                <!-- Portfolio Overview Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600">Total Portfolio Value</p>
+                                <p class="text-2xl font-bold text-gray-900" data-bind="portfolio.totalValue">S$12,847.62</p>
+                            </div>
+                            <div class="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-wallet text-primary"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <span class="text-success text-sm font-medium">+8.5%</span>
+                            <span class="text-gray-500 text-sm ml-2">from last month</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600">Total Returns</p>
+                                <p class="text-2xl font-bold text-success" data-bind="portfolio.totalReturns">+S$2,847.62</p>
+                            </div>
+                            <div class="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-chart-line text-success"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <span class="text-success text-sm font-medium">+28.5%</span>
+                            <span class="text-gray-500 text-sm ml-2">total return</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600">Daily P&L</p>
+                                <p class="text-2xl font-bold text-success" data-bind="portfolio.dailyPnL">+S$124.58</p>
+                            </div>
+                            <div class="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-trending-up text-success"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <span class="text-success text-sm font-medium">+0.97%</span>
+                            <span class="text-gray-500 text-sm ml-2">today</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600">Active Investments</p>
+                                <p class="text-2xl font-bold text-gray-900" data-bind="portfolio.activeInvestments">7</p>
+                            </div>
+                            <div class="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-coins text-purple-600"></i>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <span class="text-gray-600 text-sm">BTC, ETH, ADA, +4 more</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Chart -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900">Portfolio Performance</h3>
+                        <div class="flex space-x-2">
+                            <button class="px-3 py-1 text-sm bg-primary text-white rounded-lg">7D</button>
+                            <button class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">1M</button>
+                            <button class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">3M</button>
+                            <button class="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">1Y</button>
+                        </div>
+                    </div>
+                    <!-- @FUNCTIONALITY: This chart should implement real-time portfolio performance visualization using Chart.js or similar -->
+                    <div class="h-64 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg flex items-center justify-center">
+                        <div class="text-center text-gray-500">
+                            <i class="fas fa-chart-area text-4xl mb-2"></i>
+                            <p>Portfolio Performance Chart</p>
+                            <p class="text-sm">Real-time data via Gemini API</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Holdings Table -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">Current Holdings</h3>
+                        <p class="text-sm text-gray-600 mt-1">Last updated: <span data-bind="portfolio.lastUpdated">2 minutes ago</span></p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Holdings</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Price</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Market Value</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">24h Change</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <!-- @MAP: holdings.map(holding => ( -->
+                                <tr data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="h-10 w-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold mr-3">₿</div>
+                                            <div>
+                                                <div class="text-sm font-medium text-gray-900" data-bind="holding.name">Bitcoin</div>
+                                                <div class="text-sm text-gray-500" data-bind="holding.symbol">BTC</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="holding.amount">0.285 BTC</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="holding.price">S$67,245.83</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-bind="holding.value">S$19,165.06</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            +2.34%
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-3">Ξ</div>
+                                            <div>
+                                                <div class="text-sm font-medium text-gray-900">Ethereum</div>
+                                                <div class="text-sm text-gray-500">ETH</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5.82 ETH</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">S$4,156.72</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">S$24,192.07</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            -1.23%
+                                        </span>
+                                    </td>
+                                </tr>
+                                <!-- @END_MAP )) -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings View -->
+            <div id="settings-view" class="hidden">
+                <!-- Header -->
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900">Settings</h1>
+                    <p class="text-gray-600 mt-2">Manage your investment preferences and account settings</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Investment Controls -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Investment Controls</h3>
+                        
+                        <div class="space-y-6">
+                            <!-- Investment Status -->
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                <div>
+                                    <h4 class="font-medium text-gray-900">Automated Investing</h4>
+                                    <p class="text-sm text-gray-600">AI-powered portfolio management</p>
+                                </div>
+                                <!-- @STATE: isInvestmentActive:boolean = true -->
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" data-bind="settings.investmentActive" checked class="sr-only peer">
+                                    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                </label>
+                            </div>
+
+                            <!-- Investment Amount Update -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Investment Amount (SGD)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-3 text-gray-500">S$</span>
+                                    <input type="number" data-bind="settings.investmentAmount" value="10000" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                </div>
+                                <button data-event="click:updateInvestmentAmount" class="mt-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    Update Amount
+                                </button>
+                            </div>
+
+                            <!-- Risk Level -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-3">Risk Tolerance</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button class="p-3 text-center border border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors">
+                                        <div class="text-green-600 font-medium">Conservative</div>
+                                        <div class="text-xs text-gray-500">Low Risk</div>
+                                    </button>
+                                    <button class="p-3 text-center border-2 border-primary bg-blue-50 rounded-lg">
+                                        <div class="text-primary font-medium">Moderate</div>
+                                        <div class="text-xs text-gray-600">Medium Risk</div>
+                                    </button>
+                                    <button class="p-3 text-center border border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors">
+                                        <div class="text-red-600 font-medium">Aggressive</div>
+                                        <div class="text-xs text-gray-500">High Risk</div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Methods -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Methods</h3>
+                        
+                        <!-- Current Payment Methods -->
+                        <div class="space-y-4 mb-6">
+                            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-credit-card text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-gray-900" data-bind="paymentMethod.name">Visa ending in 4242</p>
+                                        <p class="text-sm text-gray-500">Expires 12/25</p>
+                                    </div>
+                                </div>
+                                <button class="text-red-600 hover:text-red-700">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Add Payment Method -->
+                        <button data-event="click:openStripeDialog" class="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors text-center">
+                            <i class="fas fa-plus text-gray-400 text-2xl mb-2"></i>
+                            <p class="text-gray-600 font-medium">Add Payment Method</p>
+                            <p class="text-sm text-gray-500">via Stripe secure checkout</p>
+                        </button>
+                        
+                        <!-- @FUNCTIONALITY: This button should open Stripe Elements for secure payment method collection -->
+                        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="flex items-start">
+                                <i class="fas fa-shield-alt text-blue-600 mt-0.5 mr-2"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-blue-900">Secure Payment Processing</p>
+                                    <p class="text-xs text-blue-700">All payment information is processed securely through Stripe</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API Settings -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">API Configuration</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                <div class="flex items-center">
+                                    <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                                    <span class="text-green-800 font-medium">Gemini API Connected</span>
+                                </div>
+                                <p class="text-sm text-green-700 mt-1">Last validated: 2 hours ago</p>
+                            </div>
+                            
+                            <button class="w-full p-3 border border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors text-center">
+                                <i class="fas fa-sync-alt mr-2"></i>
+                                Test API Connection
+                            </button>
+                            
+                            <button class="w-full p-3 text-red-600 border border-red-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors text-center">
+                                <i class="fas fa-key mr-2"></i>
+                                Update API Credentials
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Account Security -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Account Security</h3>
+                        
+                        <div class="space-y-4">
+                            <button class="w-full p-3 border border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors text-left">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium text-gray-900">Change Password</p>
+                                        <p class="text-sm text-gray-500">Update your account password</p>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </div>
+                            </button>
+                            
+                            <button class="w-full p-3 border border-gray-300 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors text-left">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium text-gray-900">Two-Factor Authentication</p>
+                                        <p class="text-sm text-gray-500">Add extra security to your account</p>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-gray-400"></i>
+                                </div>
+                            </button>
+                            
+                            <button class="w-full p-3 text-red-600 border border-red-300 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors text-left">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium">Close Account</p>
+                                        <p class="text-sm text-red-500">Permanently delete your account</p>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-red-400"></i>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: MainApp -->
+
+    <script>
+        // TODO: Implement proper authentication flow, API integration, and state management
+        
+        (function() {
+            // UI Navigation Functions
+            function toggleAuthMode() {
+                const signupForm = document.getElementById('signup-form');
+                const signinForm = document.getElementById('signin-form');
+                
+                if (signupForm.classList.contains('hidden')) {
+                    signupForm.classList.remove('hidden');
+                    signinForm.classList.add('hidden');
+                } else {
+                    signupForm.classList.add('hidden');
+                    signinForm.classList.remove('hidden');
+                }
+            }
+
+            function showDashboard() {
+                document.getElementById('dashboard-view').classList.remove('hidden');
+                document.getElementById('settings-view').classList.add('hidden');
+                document.getElementById('nav-dashboard').classList.add('active');
+                document.getElementById('nav-settings').classList.remove('active');
+            }
+
+            function showSettings() {
+                document.getElementById('dashboard-view').classList.add('hidden');
+                document.getElementById('settings-view').classList.remove('hidden');
+                document.getElementById('nav-dashboard').classList.remove('active');
+                document.getElementById('nav-settings').classList.add('active');
+            }
+
+            function signOut() {
+                document.getElementById('main-app').classList.add('hidden');
+                document.getElementById('auth-container').classList.remove('hidden');
+            }
+
+            function launchApp() {
+                document.getElementById('auth-container').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+            }
+
+            // Make functions globally available
+            window.toggleAuthMode = toggleAuthMode;
+            window.showDashboard = showDashboard;
+            window.showSettings = showSettings;
+            window.signOut = signOut;
+            window.launchApp = launchApp;
+
+            // Demo: Auto-launch app after 3 seconds (remove in production)
+            setTimeout(() => {
+                // launchApp();
+            }, 3000);
+        })();
+    </script>
+
+    <style>
+        .nav-item {
+            @apply text-gray-600 hover:text-primary hover:bg-blue-50;
+        }
+        .nav-item.active {
+            @apply text-primary bg-blue-50 font-medium;
+        }
+    </style>
+</body>
+</html>

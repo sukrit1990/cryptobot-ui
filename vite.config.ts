@@ -16,6 +16,7 @@ export default defineConfig({
         ]
       : []),
   ],
+  base: '/cryptobot-ui/', // your repo name
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
