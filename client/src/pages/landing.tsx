@@ -290,35 +290,8 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-4 sm:py-12 px-3 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animate-gradient"></div>
-      
-      {/* Floating Wealth Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Dollar signs */}
-        <div className="absolute top-[10%] left-[5%] text-6xl text-green-400/10 font-bold animate-float-slow">$</div>
-        <div className="absolute top-[60%] left-[15%] text-8xl text-emerald-400/10 font-bold animate-float-medium">$</div>
-        <div className="absolute top-[30%] right-[10%] text-7xl text-green-500/10 font-bold animate-float-fast">$</div>
-        <div className="absolute bottom-[20%] right-[25%] text-9xl text-teal-400/10 font-bold animate-float-slow">$</div>
-        
-        {/* Chart indicators */}
-        <div className="absolute top-[15%] right-[20%] text-5xl text-blue-400/10 animate-float-medium">📈</div>
-        <div className="absolute bottom-[30%] left-[20%] text-6xl text-indigo-400/10 animate-float-fast">📊</div>
-        
-        {/* Geometric shapes representing growth */}
-        <div className="absolute top-[40%] left-[8%] w-20 h-20 border-4 border-purple-300/20 rounded-lg rotate-12 animate-spin-slow"></div>
-        <div className="absolute top-[70%] right-[15%] w-16 h-16 border-4 border-blue-300/20 rounded-full animate-pulse-slow"></div>
-        <div className="absolute top-[25%] left-[70%] w-24 h-24 border-4 border-indigo-300/20 rounded-lg -rotate-12 animate-float-medium"></div>
-        
-        {/* Sparkling particles */}
-        <div className="absolute top-[20%] left-[30%] w-2 h-2 bg-yellow-400/40 rounded-full animate-twinkle"></div>
-        <div className="absolute top-[50%] left-[60%] w-3 h-3 bg-amber-400/40 rounded-full animate-twinkle-delayed"></div>
-        <div className="absolute top-[80%] left-[40%] w-2 h-2 bg-yellow-300/40 rounded-full animate-twinkle"></div>
-        <div className="absolute top-[35%] right-[30%] w-2 h-2 bg-amber-500/40 rounded-full animate-twinkle-delayed"></div>
-      </div>
-
-      <div className="max-w-md w-full space-y-4 sm:space-y-8 relative z-10">
+    <div className="min-h-screen flex items-center justify-center py-4 sm:py-12 px-3 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="max-w-md w-full space-y-4 sm:space-y-8">
         {/* Logo and Header */}
         <div className="text-center">
           <div className="mx-auto h-12 w-12 sm:h-16 sm:w-16 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center">
