@@ -1595,9 +1595,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Stripe customer required" });
       }
 
-      // Meter events are only created through daily automated reporting
+      // Meter events are only created through monthly automated billing
       res.json({ 
-        message: "Manual usage reporting is disabled. Usage is automatically reported daily.",
+        message: "Manual usage reporting is disabled. Usage is automatically billed monthly on the 2nd of each month.",
         user_id: user.id,
         usage_quantity: usage_quantity
       });
@@ -1607,11 +1607,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Daily Usage Reporting Job - Reports usage for all users with active subscriptions
-  async function reportDailyUsageForAllUsers() {
-    console.log('Starting daily usage reporting job...');
+  // Monthly Billing Job - Bills all users for the previous month's profit on the 2nd of each month
+  async function reportMonthlyBillingForAllUsers() {
+    console.log('Starting monthly billing job...');
     
     try {
+      // Calculate previous month and year
+      const now = new Date();
+      const previousMonth = now.getMonth() === 0 ? 12 : now.getMonth(); // 1-12
+      const previousYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      
+      console.log(`Billing for month ${previousMonth}/${previousYear}`);
+      
       // Get all users with active Stripe subscriptions
       const users = await storage.getAllUsersWithSubscriptions();
       
@@ -1629,9 +1636,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          // Fetch profit data from CryptoBot API
-          const profitResponse = await fetch(
-            `https://cryptobot-api-f15f3256ac28.herokuapp.com/profit?email=${encodeURIComponent(user.email)}`,
+          // Fetch monthly fee from CryptoBot API for the previous month
+          const monthlyFeeResponse = await fetch(
+            `https://cryptobot-api-f15f3256ac28.herokuapp.com/account/monthly-fee?email=${encodeURIComponent(user.email)}&month=${previousMonth}&year=${previousYear}`,
             {
               headers: {
                 'accept': 'application/json',
@@ -1640,40 +1647,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           );
 
-          if (!profitResponse.ok) {
-            console.error(`Failed to fetch profit for user ${user.email}: ${profitResponse.status}`);
+          if (!monthlyFeeResponse.ok) {
+            console.error(`Failed to fetch monthly fee for user ${user.email}: ${monthlyFeeResponse.status}`);
             continue;
           }
 
-          const profitData = await profitResponse.json();
-          console.log(`Profit data for ${user.email}:`, profitData);
+          const monthlyFeeData = await monthlyFeeResponse.json();
+          console.log(`Monthly fee data for ${user.email}:`, monthlyFeeData);
 
-          // Extract daily profit increment and convert to cents (multiply by 100 for integer requirement)
-          let usageQuantity = 0;
-          let originalProfitValue = 0;
-          let dailyProfitIncrement = 0;
+          // Extract monthly profit and convert to cents (multiply by 100 for Stripe integer requirement)
+          const monthlyProfit = parseFloat(monthlyFeeData.total_profit || 0);
+          const usageQuantity = Math.round(Math.max(0, monthlyProfit) * 100); // Convert dollars to cents
           
-          if (profitData.profit && profitData.profit.length > 0) {
-            // Get the latest profit entry (cumulative)
-            const latestProfit = profitData.profit[profitData.profit.length - 1];
-            const currentCumulativeProfit = parseFloat(latestProfit.PROFIT || 0);
-            
-            // Get the previous profit entry to calculate daily increment
-            if (profitData.profit.length > 1) {
-              const previousProfit = profitData.profit[profitData.profit.length - 2];
-              const previousCumulativeProfit = parseFloat(previousProfit.PROFIT || 0);
-              dailyProfitIncrement = Math.max(0, currentCumulativeProfit - previousCumulativeProfit);
-            } else {
-              // If this is the first entry, use the full amount as daily increment
-              dailyProfitIncrement = Math.max(0, currentCumulativeProfit);
-            }
-            
-            originalProfitValue = dailyProfitIncrement;
-            // Convert to cents (multiply by 100) to preserve decimal precision as integer
-            usageQuantity = Math.round(dailyProfitIncrement * 100);
-          }
-
-          console.log(`Reporting daily profit increment for ${user.email}: $${originalProfitValue} (${usageQuantity} cents)`);
+          console.log(`Billing user ${user.email} for month ${previousMonth}/${previousYear}: $${monthlyProfit} (${usageQuantity} cents)`);
 
           // Ensure we have a Stripe customer ID
           if (!user.stripeCustomerId) {
@@ -1688,7 +1674,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          // Report usage to Stripe using meter events API
+          // Report monthly usage to Stripe using meter events API
+          // This will trigger Stripe to generate an invoice and charge the customer
           const meterEvent = await stripe.billing.meterEvents.create({
             event_name: 'realized_profit',
             timestamp: Math.floor(Date.now() / 1000),
@@ -1698,33 +1685,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
 
-          console.log(`Successfully reported daily profit increment meter event for ${user.email}: $${originalProfitValue} (${usageQuantity} cents), event ID: ${(meterEvent as any).id}`);
+          console.log(`Successfully billed user ${user.email} for month ${previousMonth}/${previousYear}: $${monthlyProfit} (${usageQuantity} cents), event ID: ${(meterEvent as any).id}`);
 
         } catch (userError: any) {
           console.error(`Error processing user ${user.email}:`, userError.message);
         }
       }
 
-      console.log('Daily usage reporting job completed');
+      console.log('Monthly billing job completed');
     } catch (error: any) {
-      console.error('Error in daily usage reporting job:', error);
+      console.error('Error in monthly billing job:', error);
     }
   }
 
-  // Manual trigger endpoint for daily usage reporting (disabled - automated only)
-  app.post('/api/report-daily-usage', async (req, res) => {
+  // Manual trigger endpoint for monthly billing (disabled - automated only)
+  app.post('/api/report-monthly-billing', async (req, res) => {
     try {
       res.json({ 
-        message: "Manual daily usage reporting is disabled. Usage reporting is fully automated and runs daily at 2 AM.",
-        note: "Meter events are only created through the automated daily reporting system"
+        message: "Manual monthly billing is disabled. Billing is fully automated and runs on the 2nd of each month at 2 AM.",
+        note: "Meter events are only created through the automated monthly billing system"
       });
     } catch (error: any) {
-      console.error("Manual daily usage reporting error:", error);
+      console.error("Manual monthly billing error:", error);
       res.status(500).json({ message: "Failed to process request: " + error.message });
     }
   });
 
-  // Test meter events endpoint (disabled - meter events only for daily automated reporting)
+  // Test meter events endpoint (disabled - meter events only for monthly automated billing)
   app.post('/api/test-meter-event', async (req, res) => {
     try {
       const session = req.session as any;
@@ -1740,10 +1727,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const testValue = req.body.value || 1;
       
       res.json({ 
-        message: "Meter event testing is disabled. Meter events are only created through daily automated reporting.",
+        message: "Meter event testing is disabled. Meter events are only created through monthly automated billing.",
         customer_id: user.stripeCustomerId,
         test_value: testValue,
-        note: "Daily automated reporting will handle all meter events"
+        note: "Monthly automated billing on the 2nd of each month will handle all meter events"
       });
     } catch (error: any) {
       console.error("Error in test meter event:", error);
@@ -1847,15 +1834,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         usageQuantity = Math.round(dailyProfitIncrement * 100);
       }
 
-      // Meter events are only created through daily automated reporting
+      // Meter events are only created through monthly automated billing
       res.json({ 
-        message: "Daily profit increment meter event creation disabled for manual testing",
+        message: "Manual meter event creation disabled for testing",
         user_email: email,
         customer_id: user.stripeCustomerId,
         daily_profit_increment_dollars: originalProfitValue,
         daily_profit_increment_cents: usageQuantity,
         profit_data: profitData,
-        note: "Meter events are only created through daily automated reporting"
+        note: "Meter events are only created through monthly automated billing on the 2nd of each month"
       });
     } catch (error: any) {
       console.error("Error creating user meter event:", error);
@@ -1921,32 +1908,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Schedule daily usage reporting (runs at 2 AM daily)
-  const scheduleInterval = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  // Schedule monthly billing (runs at 2 AM on the 2nd of each month)
   
-  // Calculate time until next 2 AM
-  function getTimeUntilNext2AM() {
+  // Calculate time until next 2nd of month at 2 AM
+  function getTimeUntilNext2ndAt2AM() {
     const now = new Date();
-    const next2AM = new Date();
-    next2AM.setHours(2, 0, 0, 0);
+    const next2nd = new Date();
     
-    // If 2 AM today has passed, schedule for tomorrow
-    if (now > next2AM) {
-      next2AM.setDate(next2AM.getDate() + 1);
+    // Set to 2nd of current month at 2 AM
+    next2nd.setDate(2);
+    next2nd.setHours(2, 0, 0, 0);
+    
+    // If the 2nd at 2 AM has already passed this month, schedule for next month
+    if (now >= next2nd) {
+      next2nd.setMonth(next2nd.getMonth() + 1);
     }
     
-    return next2AM.getTime() - now.getTime();
+    const timeUntilNext = next2nd.getTime() - now.getTime();
+    console.log(`Next monthly billing scheduled for: ${next2nd.toLocaleString()}`);
+    
+    return timeUntilNext;
   }
 
-  // Schedule the first run and then repeat daily
-  setTimeout(() => {
-    reportDailyUsageForAllUsers();
+  // Schedule recurring monthly billing
+  function scheduleNextMonthlyBilling() {
+    const timeUntilNext = getTimeUntilNext2ndAt2AM();
     
-    // Then run every 24 hours
-    setInterval(reportDailyUsageForAllUsers, scheduleInterval);
-  }, getTimeUntilNext2AM());
+    setTimeout(() => {
+      reportMonthlyBillingForAllUsers();
+      
+      // Schedule next month's billing
+      scheduleNextMonthlyBilling();
+    }, timeUntilNext);
+  }
 
-  console.log('Daily usage reporting scheduled to run at 2 AM daily');
+  // Start the monthly billing scheduler
+  scheduleNextMonthlyBilling();
+
+  console.log('Monthly billing scheduled to run at 2 AM on the 2nd of each month');
 
   // Subscription status endpoint
   app.get('/api/subscription-status', async (req, res) => {
