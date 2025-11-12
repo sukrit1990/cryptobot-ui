@@ -1,8 +1,3 @@
-# 1) Make the folders (no error if they already exist)
-mkdir -Force .github\workflows
-
-# 2) Create the workflow file with the correct contents
-@"
 name: Deploy Vite (client) to GitHub Pages
 
 on:
