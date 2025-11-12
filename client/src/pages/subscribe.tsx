@@ -124,16 +124,9 @@ export default function Subscribe() {
         setClientSecret(data.clientSecret);
         setShowPaymentForm(true);
       } else {
-        // Show trial end date if trial is active
-        let description = "Your subscription is now active!";
-        if (data.trial_ends_at) {
-          const trialEnd = new Date(data.trial_ends_at * 1000).toLocaleDateString();
-          description = `Trial started! You will be charged starting on ${trialEnd}.`;
-        }
-        
         toast({
           title: "Subscription activated",
-          description,
+          description: "Your subscription is now active!",
         });
       }
     },
@@ -315,7 +308,7 @@ export default function Subscribe() {
                   disabled={createSubscriptionMutation.isPending}
                   className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90"
                 >
-                  {createSubscriptionMutation.isPending ? "Processing..." : "Start Premium Trial"}
+                  {createSubscriptionMutation.isPending ? "Processing..." : "Start Premium Subscription"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </CardContent>

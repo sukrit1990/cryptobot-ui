@@ -35,7 +35,7 @@ Preferred communication style: Simple, everyday language.
 ### Key Components
 - **Authentication System**: Replit Auth (OpenID Connect), PostgreSQL-backed sessions, route-level protection, automatic user creation.
 - **Portfolio Management**: Real-time data fetching via Gemini API, comprehensive analytics (invested amount vs. current value, realized profit, annualized IRR), detailed holdings display, manual and automatic refresh mechanisms.
-- **Subscription & Payment System**: Stripe integration for metered subscriptions and payment processing (card-only payments), customer and subscription creation, monthly billing on the 2nd of each month, payment method management, and a 30-day free trial.
+- **Subscription & Payment System**: Stripe integration for metered subscriptions and payment processing (card-only payments), customer and subscription creation, monthly billing on the 2nd of each month, payment method management. No trial period - billing starts immediately based on monthly profits.
 
 ## External Dependencies
 

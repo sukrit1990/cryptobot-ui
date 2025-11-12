@@ -1385,13 +1385,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid Stripe customer. Please create customer first by adding a payment method." });
       }
       
-      // Create new metered subscription with 30-day trial
+      // Create new metered subscription (no trial period)
       const subscriptionParams: any = {
         customer: user.stripeCustomerId,
         items: [{
           price: 'price_1RrVKkAU0aPHWB2SrdRNnBVm', // Metered price ID
         }],
-        trial_period_days: 30, // 30-day free trial
         expand: ['latest_invoice.payment_intent'],
       };
 
@@ -1412,8 +1411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         subscription_id: subscription.id,
         subscription_item_id: subscriptionItemId,
-        status: subscription.status,
-        trial_ends_at: subscription.trial_end
+        status: subscription.status
       });
     } catch (error: any) {
       console.error("Error creating subscription:", error);

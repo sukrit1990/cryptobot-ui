@@ -88,16 +88,9 @@ function SubscriptionForm({ onClose }: { onClose: () => void }) {
 
       const subscriptionData = await subscriptionResponse.json();
 
-      // Show trial end date if trial is active
-      let description = `Your metered subscription is now active. Subscription ID: ${subscriptionData.subscription_id}`;
-      if (subscriptionData.trial_ends_at) {
-        const trialEnd = new Date(subscriptionData.trial_ends_at * 1000).toLocaleDateString();
-        description = `Trial started! You will be charged starting on ${trialEnd}. Subscription ID: ${subscriptionData.subscription_id}`;
-      }
-
       toast({
         title: "Subscription successful!",
-        description,
+        description: `Your metered subscription is now active. Subscription ID: ${subscriptionData.subscription_id}`,
       });
 
       // Refresh subscription status
@@ -751,7 +744,7 @@ export default function Settings() {
                           <DialogTitle>Start Your Subscription</DialogTitle>
                           <DialogDescription>
                             Subscribe to CryptoInvest Pro to enable automated investing. 
-                            You'll get a 30-day free trial.
+                            Billing is based on your monthly trading profits.
                           </DialogDescription>
                         </DialogHeader>
                         <Elements stripe={stripePromise}>
