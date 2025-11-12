@@ -35,7 +35,7 @@ Preferred communication style: Simple, everyday language.
 ### Key Components
 - **Authentication System**: Replit Auth (OpenID Connect), PostgreSQL-backed sessions, route-level protection, automatic user creation.
 - **Portfolio Management**: Real-time data fetching via Gemini API, comprehensive analytics (invested amount vs. current value, realized profit, annualized IRR), detailed holdings display, manual and automatic refresh mechanisms.
-- **Subscription & Payment System**: Stripe integration for metered subscriptions and payment processing (card-only payments), customer and subscription creation, daily usage reporting for billing, payment method management, and a 30-day free trial.
+- **Subscription & Payment System**: Stripe integration for metered subscriptions and payment processing (card-only payments), customer and subscription creation, monthly billing on the 2nd of each month, payment method management, and a 30-day free trial.
 
 ## External Dependencies
 
@@ -91,12 +91,15 @@ Preferred communication style: Simple, everyday language.
 - Spacing optimization: gap-3/px-3 mobile vs gap-6/px-6 desktop layouts
 - Touch-friendly interfaces optimized for 360px+ screen widths
 
-### Meter Events API Access Restriction (July 31, 2025)
-- Restricted Stripe meter events API calls to only Daily Automated Usage Reporting (2 AM daily)
+### Monthly Billing System Implementation (November 12, 2025)
+- Replaced daily billing with monthly billing that runs on the 2nd of each month at 2 AM
+- Integrated CryptoBot `/account/monthly-fee` API endpoint for retrieving previous month's total profit
+- Monthly billing automatically fetches profit data for all subscribed users and reports to Stripe
+- Stripe generates invoices and charges customers' payment methods based on monthly profit (converted from dollars to cents)
+- Removed daily automated usage reporting in favor of cleaner monthly billing cycle
 - Disabled manual meter event creation in `/api/report-usage`, `/api/test-meter-event`, and `/api/test-user-meter-event` endpoints
-- Disabled manual daily usage reporting trigger `/api/report-daily-usage` 
-- All manual endpoints now return informational messages explaining automated-only policy
-- Meter events are exclusively created through the automated background job for billing accuracy
+- All manual endpoints return informational messages explaining automated monthly billing policy
+- Meter events are exclusively created through the monthly automated billing job for accuracy
 - Enhanced system to prevent accidental duplicate or manual billing events
 
 ### Account Management & Logout Functionality (August 2, 2025)
