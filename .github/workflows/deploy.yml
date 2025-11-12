@@ -1,4 +1,4 @@
-name: Deploy Vite (client) to GitHub Pages
+name: Deploy Vite to GitHub Pages
 
 on:
   push:
@@ -26,21 +26,24 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install deps
-        working-directory: client
-        run: npm ci  # use "npm install" if you don't commit package-lock.json
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build
-        working-directory: client
         run: npm run build
 
-      - name: SPA 404 fallback
-        run: cp client/dist/index.html client/dist/404.html
+      - name: SPA 404 fallback (ignore if missing)
+        run: |
+          if [ -f dist/index.html ]; then
+            cp dist/index.html dist/404.html
+          else
+            echo "Warning: dist/index.html not found"
+          fi
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: client/dist
+          path: dist
 
   deploy:
     needs: build
