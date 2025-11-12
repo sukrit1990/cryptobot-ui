@@ -1698,16 +1698,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
-  // Manual trigger endpoint for monthly billing (disabled - automated only)
-  app.post('/api/report-monthly-billing', async (req, res) => {
+  // Manual trigger endpoint for monthly billing (FOR TESTING ONLY)
+  app.post('/api/test-monthly-billing', async (req, res) => {
     try {
+      console.log('Manual test of monthly billing triggered...');
+      
+      // Run the monthly billing function
+      await reportMonthlyBillingForAllUsers();
+      
       res.json({ 
-        message: "Manual monthly billing is disabled. Billing is fully automated and runs on the 2nd of each month at 2 AM.",
-        note: "Meter events are only created through the automated monthly billing system"
+        message: "Monthly billing test completed successfully",
+        note: "Check the server logs for detailed billing results. In production, this runs automatically on the 2nd of each month at 2 AM."
       });
     } catch (error: any) {
-      console.error("Manual monthly billing error:", error);
-      res.status(500).json({ message: "Failed to process request: " + error.message });
+      console.error("Manual monthly billing test error:", error);
+      res.status(500).json({ message: "Failed to process test billing: " + error.message });
     }
   });
 
