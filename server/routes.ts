@@ -1612,12 +1612,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('Starting monthly billing job...');
     
     try {
-      // Calculate previous month and year
+      // Get current month and year (API will return previous month's profit automatically)
       const now = new Date();
-      const previousMonth = now.getMonth() === 0 ? 12 : now.getMonth(); // 1-12
-      const previousYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      const currentMonth = now.getMonth() + 1; // JavaScript months are 0-11, so add 1 for 1-12
+      const currentYear = now.getFullYear();
       
-      console.log(`Billing for month ${previousMonth}/${previousYear}`);
+      console.log(`Billing for current month ${currentMonth}/${currentYear} (API will return previous month's profit)`);
       
       // Get all users with active Stripe subscriptions
       const users = await storage.getAllUsersWithSubscriptions();
@@ -1636,9 +1636,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          // Fetch monthly fee from CryptoBot API for the previous month
+          // Fetch monthly fee from CryptoBot API (API returns previous month's profit)
           const monthlyFeeResponse = await fetch(
-            `https://cryptobot-api-f15f3256ac28.herokuapp.com/account/monthly-fee?email=${encodeURIComponent(user.email)}&month=${previousMonth}&year=${previousYear}`,
+            `https://cryptobot-api-f15f3256ac28.herokuapp.com/account/monthly-fee?email=${encodeURIComponent(user.email)}&month=${currentMonth}&year=${currentYear}`,
             {
               headers: {
                 'accept': 'application/json',
@@ -1659,7 +1659,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const monthlyProfit = parseFloat(monthlyFeeData.total_profit || 0);
           const usageQuantity = Math.round(Math.max(0, monthlyProfit) * 100); // Convert dollars to cents
           
-          console.log(`Billing user ${user.email} for month ${previousMonth}/${previousYear}: $${monthlyProfit} (${usageQuantity} cents)`);
+          console.log(`Billing user ${user.email} for API month ${currentMonth}/${currentYear}: $${monthlyProfit} (${usageQuantity} cents)`);
 
           // Ensure we have a Stripe customer ID
           if (!user.stripeCustomerId) {
@@ -1685,7 +1685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
 
-          console.log(`Successfully billed user ${user.email} for month ${previousMonth}/${previousYear}: $${monthlyProfit} (${usageQuantity} cents), event ID: ${(meterEvent as any).id}`);
+          console.log(`Successfully billed user ${user.email} for API month ${currentMonth}/${currentYear}: $${monthlyProfit} (${usageQuantity} cents), event ID: ${(meterEvent as any).id}`);
 
         } catch (userError: any) {
           console.error(`Error processing user ${user.email}:`, userError.message);
